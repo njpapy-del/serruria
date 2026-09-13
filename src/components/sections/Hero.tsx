@@ -5,9 +5,25 @@ import { CheckCircle2 } from "lucide-react";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-navy-radial text-white">
-      <div className="container-srr grid gap-10 py-14 lg:grid-cols-2 lg:items-center lg:py-24">
-        <div>
+    <section className="relative isolate min-h-[640px] overflow-hidden text-white lg:min-h-[760px]">
+      <video
+        className="absolute inset-0 -z-20 h-full w-full object-cover"
+        src={siteConfig.hero.videoSrc}
+        poster={siteConfig.hero.posterSrc}
+        muted
+        autoPlay
+        loop
+        playsInline
+        preload="none"
+      />
+      {/* Overlay bleu nuit pour garantir la lisibilité du texte et des CTA sur la vidéo. */}
+      <div
+        className="absolute inset-0 -z-10 bg-gradient-to-r from-navy-950/95 via-navy-950/80 to-navy-950/40"
+        aria-hidden="true"
+      />
+
+      <div className="container-srr flex min-h-[640px] flex-col justify-center py-14 lg:min-h-[760px] lg:py-24">
+        <div className="max-w-xl">
           <span className="inline-flex items-center gap-2 rounded-full bg-amber-400/15 px-4 py-1.5 text-sm font-bold tracking-wide text-amber-300">
             <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse-soft" aria-hidden="true" />
             {siteConfig.hero.badge}
@@ -32,19 +48,6 @@ export function Hero() {
               </li>
             ))}
           </ul>
-        </div>
-
-        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl border border-white/10 card-elevated lg:aspect-square">
-          <video
-            className="h-full w-full object-cover"
-            src={siteConfig.hero.videoSrc}
-            poster={siteConfig.hero.posterSrc}
-            muted
-            autoPlay
-            loop
-            playsInline
-            preload="none"
-          />
         </div>
       </div>
     </section>

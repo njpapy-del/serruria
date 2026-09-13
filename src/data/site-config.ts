@@ -78,15 +78,18 @@ export const siteConfig = {
     "Artisan professionnel",
   ],
 
+  // `photo` : PLACEHOLDER (null) tant qu'aucune vraie photo n'est fournie —
+  // la carte affiche alors une icône de secours. Renseigner un chemin
+  // (ex. "/images/problemes/porte-claquee.jpg") pour l'afficher à la place.
   problemes: [
-    { id: "porte-claquee", label: "Porte claquée" },
-    { id: "porte-verrouillee", label: "Porte verrouillée" },
-    { id: "cle-cassee", label: "Clé cassée" },
-    { id: "cle-perdue", label: "Clé perdue" },
-    { id: "serrure-bloquee", label: "Serrure bloquée" },
-    { id: "changement-serrure", label: "Changement de serrure" },
-    { id: "apres-effraction", label: "Après effraction" },
-    { id: "securisation-porte", label: "Sécurisation de porte" },
+    { id: "porte-claquee", label: "Porte claquée", photo: "/images/problemes/porte-claquee.png" as string | null },
+    { id: "porte-verrouillee", label: "Porte verrouillée", photo: null as string | null },
+    { id: "cle-cassee", label: "Clé cassée", photo: null as string | null },
+    { id: "cle-perdue", label: "Clé perdue", photo: null as string | null },
+    { id: "serrure-bloquee", label: "Serrure bloquée", photo: null as string | null },
+    { id: "changement-serrure", label: "Changement de serrure", photo: null as string | null },
+    { id: "apres-effraction", label: "Après effraction", photo: null as string | null },
+    { id: "securisation-porte", label: "Sécurisation de porte", photo: null as string | null },
   ],
 
   // NE PAS INVENTER LES PRIX : priceFrom reste `null` jusqu'à ce que le client
