@@ -7,7 +7,7 @@ export function Hero() {
   return (
     <section className="relative isolate min-h-[640px] overflow-hidden text-white lg:min-h-[760px]">
       <video
-        className="absolute inset-0 -z-20 h-full w-full object-cover"
+        className="absolute inset-0 -z-20 h-full w-full object-cover brightness-150 contrast-[1.05] saturate-[1.1]"
         src={siteConfig.hero.videoSrc}
         poster={siteConfig.hero.posterSrc}
         muted
@@ -18,7 +18,7 @@ export function Hero() {
       />
       {/* Overlay bleu nuit pour garantir la lisibilité du texte et des CTA sur la vidéo. */}
       <div
-        className="absolute inset-0 -z-10 bg-gradient-to-r from-navy-950/95 via-navy-950/80 to-navy-950/40"
+        className="absolute inset-0 -z-10 bg-gradient-to-r from-navy-950/65 via-navy-950/35 to-navy-950/10"
         aria-hidden="true"
       />
 

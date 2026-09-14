@@ -13,8 +13,11 @@ const NAV_LINKS = [
 export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="container-srr flex h-16 items-center justify-between lg:h-20">
-        <Link href="/" className="text-xl font-extrabold tracking-tight text-navy-900 lg:text-2xl">
+      <div className="container-srr flex h-16 items-center justify-between gap-3 lg:h-20">
+        <Link
+          href="/"
+          className="min-w-0 flex-1 truncate text-base font-extrabold leading-tight tracking-tight text-navy-900 sm:text-lg lg:flex-initial lg:text-2xl"
+        >
           {siteConfig.brand.name}
         </Link>
 
@@ -30,11 +33,11 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden lg:block">
+        <div className="hidden flex-shrink-0 lg:block">
           <PhoneCTA location="header" size="sm" />
         </div>
 
-        <div className="lg:hidden">
+        <div className="flex-shrink-0 lg:hidden">
           <PhoneCTA location="header_mobile" size="sm" label="APPELER" />
         </div>
       </div>

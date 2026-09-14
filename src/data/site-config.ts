@@ -30,7 +30,7 @@ export type Avis = {
 
 export const siteConfig = {
   brand: {
-    name: "SERRURIA",
+    name: "Serrurerie Louis & Fils",
     slogan: "Votre serrurier, quand vous en avez besoin.",
     positioning: "Serrurier d'urgence près de chez vous",
   },
