@@ -1,6 +1,6 @@
-import Image from "next/image";
 import { siteConfig } from "@/data/site-config";
 import { Section, SectionHeading } from "@/components/ui/Section";
+import { ProblemPhotoFrame } from "@/components/sections/ProblemPhotoFrame";
 import {
   DoorClosed,
   Lock,
@@ -36,20 +36,14 @@ export function ProblemGrid() {
               href="#lead-form"
               className="card-elevated group flex flex-col gap-3 overflow-hidden rounded-2xl bg-white p-3 text-center transition-transform hover:-translate-y-0.5"
             >
-              {/* Cadre photo : affiche la vraie photo une fois fournie dans
+              {/* Cadre photo : fait défiler les vraies photos fournies dans
                   site-config.ts, sinon une icône de secours (jamais de fausse photo). */}
               <span className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-navy-900/5">
-                {probleme.photo ? (
-                  <Image
-                    src={probleme.photo}
-                    alt={probleme.label}
-                    fill
-                    sizes="(min-width: 1024px) 22vw, 45vw"
-                    className="object-cover"
-                  />
-                ) : (
-                  <Icon className="h-8 w-8 text-navy-900" aria-hidden="true" />
-                )}
+                <ProblemPhotoFrame
+                  photos={probleme.photos}
+                  alt={probleme.label}
+                  fallback={<Icon className="h-8 w-8 text-navy-900" aria-hidden="true" />}
+                />
               </span>
               <span className="text-sm font-semibold text-navy-800">{probleme.label}</span>
             </a>

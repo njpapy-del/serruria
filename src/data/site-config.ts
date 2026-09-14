@@ -78,18 +78,75 @@ export const siteConfig = {
     "Artisan professionnel",
   ],
 
-  // `photo` : PLACEHOLDER (null) tant qu'aucune vraie photo n'est fournie —
-  // la carte affiche alors une icône de secours. Renseigner un chemin
-  // (ex. "/images/problemes/porte-claquee.jpg") pour l'afficher à la place.
+  // `photos` : liste vide tant qu'aucune vraie photo n'est fournie — la carte
+  // affiche alors une icône de secours. Avec plusieurs photos, elles défilent
+  // en fondu dans le cadre.
   problemes: [
-    { id: "porte-claquee", label: "Porte claquée", photo: "/images/problemes/porte-claquee.png" as string | null },
-    { id: "porte-verrouillee", label: "Porte verrouillée", photo: "/images/problemes/porte-verrouillee.png" as string | null },
-    { id: "cle-cassee", label: "Clé cassée", photo: "/images/problemes/cle-cassee.png" as string | null },
-    { id: "cle-perdue", label: "Clé perdue", photo: "/images/problemes/cle-perdue.png" as string | null },
-    { id: "serrure-bloquee", label: "Serrure bloquée", photo: "/images/problemes/serrure-bloquee.png" as string | null },
-    { id: "changement-serrure", label: "Changement de serrure", photo: "/images/problemes/changement-serrure.png" as string | null },
-    { id: "apres-effraction", label: "Après effraction", photo: "/images/problemes/apres-effraction.png" as string | null },
-    { id: "securisation-porte", label: "Sécurisation de porte", photo: "/images/problemes/securisation-porte.png" as string | null },
+    {
+      id: "porte-claquee",
+      label: "Porte claquée",
+      photos: ["/images/problemes/porte-claquee.png"],
+    },
+    {
+      id: "porte-verrouillee",
+      label: "Porte verrouillée",
+      photos: [
+        "/images/problemes/porte-verrouillee.png",
+        "/images/problemes/porte-verrouillee-2.png",
+      ],
+    },
+    {
+      id: "cle-cassee",
+      label: "Clé cassée",
+      photos: [
+        "/images/problemes/cle-cassee.png",
+        "/images/problemes/cle-cassee-2.png",
+        "/images/problemes/cle-cassee-3.png",
+      ],
+    },
+    {
+      id: "cle-perdue",
+      label: "Clé perdue",
+      photos: [
+        "/images/problemes/cle-perdue.png",
+        "/images/problemes/cle-perdue-2.png",
+      ],
+    },
+    {
+      id: "serrure-bloquee",
+      label: "Serrure bloquée",
+      photos: [
+        "/images/problemes/serrure-bloquee.png",
+        "/images/problemes/serrure-bloquee-2.png",
+        "/images/problemes/serrure-bloquee-3.png",
+      ],
+    },
+    {
+      id: "changement-serrure",
+      label: "Changement de serrure",
+      photos: [
+        "/images/problemes/changement-serrure.png",
+        "/images/problemes/changement-serrure-2.png",
+        "/images/problemes/changement-serrure-3.png",
+      ],
+    },
+    {
+      id: "apres-effraction",
+      label: "Après effraction",
+      photos: [
+        "/images/problemes/apres-effraction.png",
+        "/images/problemes/apres-effraction-2.png",
+      ],
+    },
+    {
+      id: "securisation-porte",
+      label: "Sécurisation de porte",
+      photos: [
+        "/images/problemes/securisation-porte.png",
+        "/images/problemes/securisation-porte-2.png",
+        "/images/problemes/securisation-porte-3.png",
+      ],
+    },
   ],
 
   // NE PAS INVENTER LES PRIX : priceFrom reste `null` jusqu'à ce que le client
