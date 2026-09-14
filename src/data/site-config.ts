@@ -168,8 +168,8 @@ export const siteConfig = {
   // Carte de l'équipe : positions illustratives dans la région parisienne, à
   // affiner ou reconnecter à un vrai suivi de flotte quand disponible.
   team: {
-    mapCenter: { lat: 48.8566, lng: 2.3522 },
-    mapZoom: 10,
+    mapCenter: { lat: 48.75, lng: 2.5 },
+    mapZoom: 9,
     technicians: [
       { name: "Damien", initials: "DA", zone: "Paris (75)", lat: 48.8566, lng: 2.3522, status: "disponible", mission: "Changement de serrure rue de Rivoli — Terminée il y a 6 min", eta: "~15 min" },
       { name: "Pascal", initials: "PA", zone: "Hauts-de-Seine (92)", lat: 48.8924, lng: 2.2469, status: "disponible", mission: "Ouverture de porte à Levallois-Perret — Terminée il y a 4 min", eta: "~18 min" },
