@@ -59,8 +59,13 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="container-srr mt-10 border-t border-white/10 pt-6 text-xs text-slate-500">
-        © {new Date().getFullYear()} {siteConfig.brand.name}. Tous droits réservés.
+      <div className="container-srr mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-500">
+        <span>
+          © {new Date().getFullYear()} {siteConfig.brand.name}. Tous droits réservés.
+        </span>
+        <Link href="/admin" className="hover:text-amber-400">
+          Se connecter
+        </Link>
       </div>
     </footer>
   );

@@ -1,0 +1,73 @@
+{
+  "brand": {
+    "slogan": "Votre serrurier, quand vous en avez besoin.",
+    "positioning": "Serrurier d'urgence près de chez vous"
+  },
+  "hero": {
+    "badge": "DISPONIBLE 7J/7",
+    "title": "Serrurier d'urgence près de chez vous",
+    "subtitle": "Porte claquée, clé cassée, serrure bloquée ? Nous vous accompagnons rapidement."
+  },
+  "promo": {
+    "text": "Ouverture de porte claquée : 49 € prix fixe, sans surprise",
+    "tag": "Pas cher"
+  },
+  "trustBullets": [
+    "Disponible 7j/7",
+    "Prix annoncé avant intervention",
+    "Devis gratuit",
+    "Artisan professionnel"
+  ],
+  "problemes": [
+    { "id": "porte-claquee", "label": "Porte claquée", "photos": ["/images/problemes/porte-claquee.png"] },
+    { "id": "porte-verrouillee", "label": "Porte verrouillée", "photos": ["/images/problemes/porte-verrouillee.png", "/images/problemes/porte-verrouillee-2.png"] },
+    { "id": "cle-cassee", "label": "Clé cassée", "photos": ["/images/problemes/cle-cassee.png", "/images/problemes/cle-cassee-2.png", "/images/problemes/cle-cassee-3.png"] },
+    { "id": "cle-perdue", "label": "Clé perdue", "photos": ["/images/problemes/cle-perdue.png", "/images/problemes/cle-perdue-2.png"] },
+    { "id": "serrure-bloquee", "label": "Serrure bloquée", "photos": ["/images/problemes/serrure-bloquee.png", "/images/problemes/serrure-bloquee-2.png", "/images/problemes/serrure-bloquee-3.png"] },
+    { "id": "changement-serrure", "label": "Changement de serrure", "photos": ["/images/problemes/changement-serrure.png", "/images/problemes/changement-serrure-2.png", "/images/problemes/changement-serrure-3.png"] },
+    { "id": "apres-effraction", "label": "Après effraction", "photos": ["/images/problemes/apres-effraction.png", "/images/problemes/apres-effraction-2.png"] },
+    { "id": "securisation-porte", "label": "Sécurisation de porte", "photos": ["/images/problemes/securisation-porte.png", "/images/problemes/securisation-porte-2.png", "/images/problemes/securisation-porte-3.png"] }
+  ],
+  "tarifs": [
+    { "id": "ouverture-porte", "label": "Ouverture de porte", "priceFrom": null, "fixed": false },
+    { "id": "porte-claquee", "label": "Porte claquée", "priceFrom": 49, "fixed": true },
+    { "id": "cle-cassee", "label": "Clé cassée", "priceFrom": null, "fixed": false },
+    { "id": "changement-cylindre", "label": "Changement de cylindre", "priceFrom": null, "fixed": false },
+    { "id": "changement-serrure", "label": "Changement de serrure", "priceFrom": null, "fixed": false },
+    { "id": "mise-en-securite", "label": "Mise en sécurité", "priceFrom": null, "fixed": false },
+    { "id": "blindage", "label": "Blindage", "priceFrom": null, "fixed": false }
+  ],
+  "etapes": [
+    { "numero": "01", "titre": "Vous nous appelez", "description": "Un premier contact rapide pour décrire votre situation." },
+    { "numero": "02", "titre": "Nous évaluons votre situation", "description": "Nous identifions le type d'intervention nécessaire." },
+    { "numero": "03", "titre": "Le prix est confirmé avant intervention", "description": "Aucune mauvaise surprise : le tarif est validé avec vous avant de commencer." },
+    { "numero": "04", "titre": "Le serrurier intervient", "description": "Un artisan intervient pour résoudre votre problème." }
+  ],
+  "services": [
+    { "id": "ouverture-porte", "label": "Ouverture de porte", "description": "Ouverture de porte claquée ou verrouillée, sans dégradation lorsque cela est possible." },
+    { "id": "changement-serrure", "label": "Changement de serrure", "description": "Remplacement complet d'une serrure usée, bloquée ou endommagée." },
+    { "id": "remplacement-cylindre", "label": "Remplacement de cylindre", "description": "Changement du cylindre pour restaurer la sécurité de votre porte." },
+    { "id": "cle-cassee", "label": "Clé cassée", "description": "Extraction d'une clé cassée dans la serrure et remise en état." },
+    { "id": "serrure-bloquee", "label": "Serrure bloquée", "description": "Diagnostic et déblocage d'une serrure qui ne tourne plus." },
+    { "id": "mise-en-securite", "label": "Mise en sécurité après effraction", "description": "Sécurisation rapide de votre porte après une tentative d'effraction." },
+    { "id": "blindage-porte", "label": "Blindage de porte", "description": "Renforcement de porte pour améliorer la résistance à l'effraction." },
+    { "id": "installation-serrure", "label": "Installation de serrure", "description": "Installation d'une nouvelle serrure sur une porte neuve ou existante." }
+  ],
+  "confiance": [
+    { "label": "Intervention professionnelle", "description": "Un artisan qui prend le temps de comprendre votre besoin." },
+    { "label": "Prix annoncé avant travaux", "description": "Le tarif est confirmé avec vous avant toute intervention." },
+    { "label": "Devis gratuit", "description": "Une estimation sans engagement, sans surprise." },
+    { "label": "Disponible 7j/7", "description": "Une disponibilité pensée pour les situations urgentes." },
+    { "label": "Travail soigné", "description": "Une intervention propre et respectueuse de votre porte." },
+    { "label": "Facture détaillée", "description": "Un document clair pour chaque intervention réalisée." }
+  ],
+  "faq": [
+    { "question": "Intervenez-vous en urgence ?", "reponse": "Oui, nous intervenons pour des situations urgentes comme une porte claquée, une clé cassée ou une serrure bloquée." },
+    { "question": "Combien coûte une ouverture de porte ?", "reponse": "Le tarif exact dépend de votre situation. Il vous est communiqué et confirmé avant toute intervention." },
+    { "question": "Le devis est-il gratuit ?", "reponse": "Oui, l'estimation de votre demande est gratuite et sans engagement." },
+    { "question": "Le prix est-il annoncé avant intervention ?", "reponse": "Oui, le prix vous est toujours confirmé avant le début de l'intervention." },
+    { "question": "Intervenez-vous le week-end ?", "reponse": "Nous sommes disponibles 7j/7. Contactez-nous pour vérifier la disponibilité au moment de votre demande." },
+    { "question": "Pouvez-vous intervenir après une effraction ?", "reponse": "Oui, nous proposons une mise en sécurité de votre porte après une effraction." },
+    { "question": "Quels types de serrures remplacez-vous ?", "reponse": "Nous intervenons sur la plupart des types de serrures et cylindres. N'hésitez pas à nous décrire votre serrure lors de votre appel." }
+  ]
+}

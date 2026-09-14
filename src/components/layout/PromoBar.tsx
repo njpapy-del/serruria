@@ -5,16 +5,16 @@ export function PromoBar() {
   if (!promo) return null;
 
   const item = (key: number) => (
-    <span key={key} className="mx-6 inline-flex items-center gap-2 text-sm font-bold">
+    <span key={key} className="mx-8 inline-flex items-center gap-3 text-base font-bold text-white sm:text-lg">
       {promo.text}
-      <span className="rounded-full bg-navy-950/90 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-300">
+      <span className="rounded-full bg-amber-400 px-3 py-1 text-sm font-bold uppercase tracking-wide text-navy-950">
         {promo.tag}
       </span>
     </span>
   );
 
   return (
-    <div className="overflow-hidden bg-amber-500 py-2 text-navy-950">
+    <div className="overflow-hidden bg-navy-900 py-3">
       <p className="sr-only">
         {promo.text} — {promo.tag}
       </p>
