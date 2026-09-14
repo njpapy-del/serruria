@@ -100,6 +100,50 @@ body {
   }
 }
 
+/* Bulle de notification flottante : plusieurs types d'entrée, une seule sortie (fondu). */
+@keyframes popup-in-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popup-in-bounce {
+  0% { opacity: 0; transform: translateY(48px) scale(0.85); }
+  60% { opacity: 1; transform: translateY(-8px) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes popup-in-diamond {
+  0% { opacity: 0; transform: scale(0.4) rotate(25deg); }
+  70% { opacity: 1; transform: scale(1.04) rotate(-3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes popup-in-slide {
+  from { opacity: 0; transform: translateX(70px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes popup-out-fade {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(12px) scale(0.95); }
+}
+
+.popup-anim-fade { animation: popup-in-fade 0.5s ease-out both; }
+.popup-anim-bounce { animation: popup-in-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.popup-anim-diamond { animation: popup-in-diamond 0.55s ease-out both; }
+.popup-anim-slide { animation: popup-in-slide 0.5s ease-out both; }
+.popup-anim-out { animation: popup-out-fade 0.35s ease-in both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .popup-anim-fade,
+  .popup-anim-bounce,
+  .popup-anim-diamond,
+  .popup-anim-slide,
+  .popup-anim-out {
+    animation: none;
+  }
+}
+
 .container-srr {
   width: 100%;
   max-width: 1280px;
