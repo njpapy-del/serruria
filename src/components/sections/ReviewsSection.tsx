@@ -1,14 +1,14 @@
-import { siteConfig } from "@/data/site-config";
+import { siteConfig, type Avis } from "@/data/site-config";
 import { Section, SectionHeading } from "@/components/ui/Section";
 import { Star } from "lucide-react";
 
 // Trois avis d'exemple, visuellement identifiés comme placeholders. Ils
 // disparaissent automatiquement dès que de vrais avis sont ajoutés dans
 // `siteConfig.avis` — on n'affiche jamais un avis d'exemple à côté de vrais avis.
-const EXAMPLE_AVIS = [
-  { prenom: "Prénom", ville: "Ville", note: 5 as const, commentaire: "Exemple de mise en forme d'un avis client." },
-  { prenom: "Prénom", ville: "Ville", note: 5 as const, commentaire: "Exemple de mise en forme d'un avis client." },
-  { prenom: "Prénom", ville: "Ville", note: 5 as const, commentaire: "Exemple de mise en forme d'un avis client." },
+const EXAMPLE_AVIS: Avis[] = [
+  { prenom: "Prénom", ville: "Ville", note: 5, commentaire: "Exemple de mise en forme d'un avis client." },
+  { prenom: "Prénom", ville: "Ville", note: 5, commentaire: "Exemple de mise en forme d'un avis client." },
+  { prenom: "Prénom", ville: "Ville", note: 5, commentaire: "Exemple de mise en forme d'un avis client." },
 ];
 
 export function ReviewsSection() {
@@ -34,7 +34,10 @@ export function ReviewsSection() {
                 />
               ))}
             </div>
-            <p className="mt-3 text-sm text-slate-600">&laquo; {avis.commentaire} &raquo;</p>
+            {avis.titre ? (
+              <p className="mt-3 font-bold text-navy-900">{avis.titre}</p>
+            ) : null}
+            <p className="mt-2 text-sm text-slate-600">&laquo; {avis.commentaire} &raquo;</p>
             <p className="mt-4 text-sm font-semibold text-navy-800">
               {avis.prenom} — {avis.ville}
             </p>

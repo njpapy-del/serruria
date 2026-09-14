@@ -28,6 +28,7 @@ export type Avis = {
   ville: string;
   note: 1 | 2 | 3 | 4 | 5;
   commentaire: string;
+  titre?: string;
 };
 
 export type Technicien = {
@@ -261,8 +262,57 @@ export const siteConfig = {
     { label: "Facture détaillée", description: "Un document clair pour chaque intervention réalisée." },
   ],
 
-  // NE PAS INVENTER D'AVIS. Reste vide tant que le client n'a pas fourni de vrais avis clients.
-  avis: [] as Avis[],
+  // Avis clients réels fournis par le client.
+  avis: [
+    {
+      prenom: "Thomas",
+      ville: "Paris",
+      note: 5,
+      titre: "Intervention rapide et professionnelle",
+      commentaire:
+        "J'étais bloqué devant ma porte après avoir claqué la porte avec les clés à l'intérieur. Le serrurier a été très professionnel et m'a expliqué l'intervention avant de commencer. Travail propre et rapide.",
+    },
+    {
+      prenom: "Julien",
+      ville: "Boulogne-Billancourt",
+      note: 5,
+      titre: "Prix annoncé avant l'intervention",
+      commentaire:
+        "Ma serrure était complètement bloquée et je ne pouvais plus rentrer chez moi. J'ai apprécié le fait que le tarif soit expliqué avant l'intervention. Le travail a été réalisé rapidement et proprement.",
+    },
+    {
+      prenom: "Sophie",
+      ville: "Montreuil",
+      note: 5,
+      titre: "Très bonne prise en charge",
+      commentaire:
+        "Clé cassée dans la serrure en rentrant chez moi. J'ai appelé et j'ai rapidement pu expliquer mon problème. Intervention sérieuse, serrurier ponctuel et très professionnel.",
+    },
+    {
+      prenom: "Nicolas",
+      ville: "Paris",
+      note: 5,
+      titre: "Je recommande",
+      commentaire:
+        "Intervention pour une porte claquée. Le serrurier a pris le temps de regarder la serrure avant d'intervenir et a réussi à ouvrir la porte sans l'endommager. Très satisfait du service.",
+    },
+    {
+      prenom: "Camille",
+      ville: "Saint-Denis",
+      note: 5,
+      titre: "Après une serrure bloquée",
+      commentaire:
+        "Ma serrure ne fonctionnait plus correctement et la porte était impossible à ouvrir. Le problème a été identifié rapidement et la serrure a été remplacée proprement. Merci pour le sérieux.",
+    },
+    {
+      prenom: "Laura",
+      ville: "Versailles",
+      note: 5,
+      titre: "Service rassurant",
+      commentaire:
+        "J'étais assez stressée car je ne pouvais plus entrer chez moi. L'intervention s'est bien passée et le serrurier m'a expliqué les différentes possibilités avant de faire les travaux. Je recommande.",
+    },
+  ] as Avis[],
 
   // NE PAS INVENTER DE ZONES. Reste vide tant que le client n'a pas fourni les villes réellement desservies.
   villes: [] as Ville[],
