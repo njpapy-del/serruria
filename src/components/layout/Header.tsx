@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Lock } from "lucide-react";
 import { siteConfig } from "@/data/site-config";
 import { PhoneCTA } from "@/components/ui/PhoneCTA";
 import { MobileNav } from "@/components/layout/MobileNav";
@@ -34,11 +35,21 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden flex-shrink-0 lg:block">
+        <div className="hidden flex-shrink-0 items-center gap-3 lg:flex">
+          <Link
+            href="/admin"
+            aria-label="Espace admin"
+            className="text-slate-300 transition-colors hover:text-navy-600"
+          >
+            <Lock className="h-5 w-5" />
+          </Link>
           <PhoneCTA location="header" size="sm" />
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-2 lg:hidden">
+          <Link href="/admin" aria-label="Espace admin" className="p-1 text-slate-300">
+            <Lock className="h-5 w-5" />
+          </Link>
           <MobileNav />
           <PhoneCTA location="header_mobile" size="sm" label="APPELER" />
         </div>
