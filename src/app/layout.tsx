@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import Script from "next/script";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
+import { PromoBar } from "@/components/layout/PromoBar";
 import { Footer } from "@/components/layout/Footer";
 import { StickyMobileBar } from "@/components/layout/StickyMobileBar";
 import { ConsentBanner } from "@/components/layout/ConsentBanner";
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         ) : null}
 
         <Header />
+        <PromoBar />
         <main>{children}</main>
         <Footer />
         <StickyMobileBar />

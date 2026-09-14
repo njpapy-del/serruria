@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { siteConfig } from "@/data/site-config";
 import { PhoneCTA } from "@/components/ui/PhoneCTA";
+import { MobileNav } from "@/components/layout/MobileNav";
 
 const NAV_LINKS = [
   { href: "/#services", label: "Services" },
@@ -12,7 +13,7 @@ const NAV_LINKS = [
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur relative">
       <div className="container-srr flex h-16 items-center justify-between gap-3 lg:h-20">
         <Link
           href="/"
@@ -26,7 +27,7 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-semibold text-navy-700 transition-colors hover:text-amber-600"
+              className="text-base font-semibold text-navy-700 transition-colors hover:text-amber-600"
             >
               {link.label}
             </Link>
@@ -37,7 +38,8 @@ export function Header() {
           <PhoneCTA location="header" size="sm" />
         </div>
 
-        <div className="flex-shrink-0 lg:hidden">
+        <div className="flex flex-shrink-0 items-center gap-2 lg:hidden">
+          <MobileNav />
           <PhoneCTA location="header_mobile" size="sm" label="APPELER" />
         </div>
       </div>

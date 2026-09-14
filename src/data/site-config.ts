@@ -19,6 +19,8 @@ export type Tarif = {
   label: string;
   /** Prix de départ en euros. Laisser `null` tant que le client n'a pas fourni le vrai tarif. */
   priceFrom: number | null;
+  /** true = prix fixe garanti ("49 € prix fixe") plutôt qu'un prix de départ variable. */
+  fixed?: boolean;
 };
 
 export type Avis = {
@@ -26,6 +28,19 @@ export type Avis = {
   ville: string;
   note: 1 | 2 | 3 | 4 | 5;
   commentaire: string;
+};
+
+export type Technicien = {
+  name: string;
+  initials: string;
+  zone: string;
+  lat: number;
+  lng: number;
+  status: "disponible" | "intervention";
+  /** Dernière mission terminée, ou mission en cours si `status` = "intervention". */
+  mission: string;
+  /** Texte d'estimation ("~18 min", "Libre dans ~13 min"...). */
+  eta: string;
 };
 
 export const siteConfig = {
@@ -149,17 +164,43 @@ export const siteConfig = {
     },
   ],
 
+  // Carte de l'équipe : positions illustratives dans la région parisienne, à
+  // affiner ou reconnecter à un vrai suivi de flotte quand disponible.
+  team: {
+    mapCenter: { lat: 48.8566, lng: 2.3522 },
+    mapZoom: 10,
+    technicians: [
+      { name: "Damien", initials: "DA", zone: "Paris (75)", lat: 48.8566, lng: 2.3522, status: "disponible", mission: "Changement de serrure rue de Rivoli — Terminée il y a 6 min", eta: "~15 min" },
+      { name: "Pascal", initials: "PA", zone: "Hauts-de-Seine (92)", lat: 48.8924, lng: 2.2469, status: "disponible", mission: "Ouverture de porte à Levallois-Perret — Terminée il y a 4 min", eta: "~18 min" },
+      { name: "Joseph", initials: "JO", zone: "Seine-Saint-Denis (93)", lat: 48.9362, lng: 2.3574, status: "intervention", mission: "Ouverture de porte blindée à Saint-Denis (en cours)", eta: "Libre dans ~20 min" },
+      { name: "Mohamed", initials: "MO", zone: "Val-de-Marne (94)", lat: 48.7911, lng: 2.4139, status: "disponible", mission: "Mise en sécurité à Créteil — Terminée il y a 11 min", eta: "~12 min" },
+      { name: "Ibrahim", initials: "IB", zone: "Seine-Saint-Denis (93)", lat: 48.9089, lng: 2.4467, status: "disponible", mission: "Clé cassée à Aulnay-sous-Bois — Terminée il y a 9 min", eta: "~16 min" },
+      { name: "Raphaël", initials: "RA", zone: "Paris (75)", lat: 48.8737, lng: 2.3614, status: "disponible", mission: "Changement de cylindre à Montmartre — Terminée il y a 22 min", eta: "~10 min" },
+      { name: "Uriel", initials: "UR", zone: "Hauts-de-Seine (92)", lat: 48.8404, lng: 2.2137, status: "intervention", mission: "Serrure bloquée à Boulogne-Billancourt (en cours)", eta: "Libre dans ~13 min" },
+      { name: "Momo", initials: "MM", zone: "Val-de-Marne (94)", lat: 48.8323, lng: 2.4425, status: "disponible", mission: "Sécurisation de porte à Vincennes — Terminée il y a 15 min", eta: "~14 min" },
+      { name: "Nathan", initials: "NA", zone: "Paris (75)", lat: 48.8462, lng: 2.3372, status: "disponible", mission: "Ouverture de porte claquée à Montparnasse — Terminée il y a 3 min", eta: "~17 min" },
+      { name: "Antoine", initials: "AN", zone: "Seine-Saint-Denis (93)", lat: 48.8631, lng: 2.4419, status: "disponible", mission: "Changement de serrure à Montreuil — Terminée il y a 8 min", eta: "~19 min" },
+      { name: "Yanis", initials: "YA", zone: "Val-de-Marne (94)", lat: 48.8144, lng: 2.3958, status: "disponible", mission: "Blindage de porte à Ivry-sur-Seine — Terminée il y a 25 min", eta: "~11 min" },
+    ] as Technicien[],
+  },
+
   // NE PAS INVENTER LES PRIX : priceFrom reste `null` jusqu'à ce que le client
   // fournisse les vrais tarifs. `null` affiche « À partir de XX € ».
   tarifs: [
     { id: "ouverture-porte", label: "Ouverture de porte", priceFrom: null },
-    { id: "porte-claquee", label: "Porte claquée", priceFrom: null },
+    { id: "porte-claquee", label: "Porte claquée", priceFrom: 49, fixed: true },
     { id: "cle-cassee", label: "Clé cassée", priceFrom: null },
     { id: "changement-cylindre", label: "Changement de cylindre", priceFrom: null },
     { id: "changement-serrure", label: "Changement de serrure", priceFrom: null },
     { id: "mise-en-securite", label: "Mise en sécurité", priceFrom: null },
     { id: "blindage", label: "Blindage", priceFrom: null },
-  ] satisfies Tarif[],
+  ] as Tarif[],
+
+  // Bandeau promotionnel animé (défile en boucle). `null`/vide pour le masquer.
+  promo: {
+    text: "Ouverture de porte claquée : 49 € prix fixe, sans surprise",
+    tag: "Pas cher",
+  },
 
   etapes: [
     { numero: "01", titre: "Vous nous appelez", description: "Un premier contact rapide pour décrire votre situation." },
