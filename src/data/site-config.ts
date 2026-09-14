@@ -208,7 +208,7 @@ export const siteConfig = {
     gtmId: process.env.NEXT_PUBLIC_GTM_ID ?? "",
   },
 
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.serruria.fr",
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://serrurerielouisfils.com",
 };
 
 export type SiteConfig = typeof siteConfig;
