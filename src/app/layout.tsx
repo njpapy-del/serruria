@@ -24,10 +24,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Script id="gtm-init" strategy="afterInteractive">
               {`
                 window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push({
-                  event: "consent_update",
-                  consent_analytics: "denied",
-                  consent_ads: "denied",
+                function gtag(){window.dataLayer.push(arguments);}
+                window.gtag = gtag;
+                gtag('consent', 'default', {
+                  'ad_storage': 'denied',
+                  'ad_user_data': 'denied',
+                  'ad_personalization': 'denied',
+                  'analytics_storage': 'denied'
                 });
                 (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
                 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],

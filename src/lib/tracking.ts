@@ -11,7 +11,8 @@ export type TrackingEvent =
 
 declare global {
   interface Window {
-    dataLayer?: Record<string, unknown>[];
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
   }
 }
 
@@ -22,16 +23,26 @@ export function pushEvent(event: TrackingEvent, params: Record<string, unknown> 
 }
 
 /**
- * État de consentement RGPD (Consent Mode v2) poussé dans le dataLayer.
- * Le conteneur GTM doit être configuré pour lire ces variables et piloter
- * le déclenchement de GA4 / Google Ads en conséquence.
+ * État de consentement RGPD (Google Consent Mode v2), signaux standard
+ * reconnus nativement par GTM : ad_storage, ad_user_data, ad_personalization,
+ * analytics_storage. `gtag` est le shim défini dans layout.tsx (simple
+ * relais vers dataLayer.push, pas la librairie gtag.js) ; on retombe sur un
+ * push direct au même format si jamais il n'est pas encore défini.
  */
 export function pushConsentState(granted: boolean) {
   if (typeof window === "undefined") return;
+  const consentValue = granted ? "granted" : "denied";
+  const params = {
+    ad_storage: consentValue,
+    ad_user_data: consentValue,
+    ad_personalization: consentValue,
+    analytics_storage: consentValue,
+  };
+
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({
-    event: "consent_update",
-    consent_analytics: granted ? "granted" : "denied",
-    consent_ads: granted ? "granted" : "denied",
-  });
+  if (typeof window.gtag === "function") {
+    window.gtag("consent", "update", params);
+  } else {
+    window.dataLayer.push(["consent", "update", params]);
+  }
 }
