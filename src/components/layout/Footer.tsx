@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { siteConfig } from "@/data/site-config";
+import { pushEvent } from "@/lib/tracking";
 
 export function Footer() {
   return (
@@ -14,7 +17,11 @@ export function Footer() {
           <p className="text-sm font-bold uppercase tracking-wide text-slate-400">Contact</p>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
-              <a href={siteConfig.contact.phoneHref} className="hover:text-amber-400">
+              <a
+                href={siteConfig.contact.phoneHref}
+                onClick={() => pushEvent("phone_click", { location: "footer" })}
+                className="hover:text-amber-400"
+              >
                 {siteConfig.contact.phoneDisplay}
               </a>
             </li>

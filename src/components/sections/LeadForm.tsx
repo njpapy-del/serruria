@@ -11,6 +11,10 @@ export function LeadForm() {
   const [status, setStatus] = useState<Status>("idle");
   const startedAtRef = useRef<number>(0);
   const hasStartedRef = useRef(false);
+  // Garde de ré-entrance : vérifiée/activée de façon synchrone, avant tout
+  // setState (asynchrone/batché) — bloque un second submit concurrent même
+  // si le bouton n'a pas encore eu le temps de se désactiver visuellement.
+  const isSubmittingRef = useRef(false);
 
   function handleFirstInteraction() {
     if (hasStartedRef.current) return;
@@ -21,6 +25,8 @@ export function LeadForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setStatus("submitting");
 
     const form = event.currentTarget;
@@ -40,6 +46,8 @@ export function LeadForm() {
       form.reset();
     } catch {
       setStatus("error");
+    } finally {
+      isSubmittingRef.current = false;
     }
   }
 

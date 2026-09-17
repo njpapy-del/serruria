@@ -1,6 +1,9 @@
+"use client";
+
 import { siteConfig } from "@/data/site-config";
 import { Section, SectionHeading } from "@/components/ui/Section";
 import { ProblemPhotoFrame } from "@/components/sections/ProblemPhotoFrame";
+import { pushEvent } from "@/lib/tracking";
 import {
   DoorClosed,
   Lock,
@@ -34,6 +37,9 @@ export function ProblemGrid() {
             <a
               key={probleme.id}
               href="#lead-form"
+              onClick={() =>
+                pushEvent("quote_request", { location: "problem_card_" + probleme.id })
+              }
               className="card-elevated group flex flex-col gap-3 overflow-hidden rounded-2xl bg-white p-3 text-center transition-transform hover:-translate-y-0.5"
             >
               {/* Cadre photo : fait défiler les vraies photos fournies dans
