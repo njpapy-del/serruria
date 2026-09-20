@@ -5,6 +5,7 @@ import { useState } from "react";
 import { TarifsEditor } from "@/components/admin/TarifsEditor";
 import { PhotosEditor } from "@/components/admin/PhotosEditor";
 import { TextEditor } from "@/components/admin/TextEditor";
+import { ContactEditor } from "@/components/admin/ContactEditor";
 import type content from "@/data/content.json";
 
 type Content = typeof content;
@@ -13,6 +14,7 @@ const TABS = [
   { id: "tarifs", label: "Tarifs" },
   { id: "photos", label: "Photos" },
   { id: "textes", label: "Textes" },
+  { id: "coordonnees", label: "Coordonnées" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -62,6 +64,9 @@ export function AdminDashboard({ initialContent }: { initialContent: Content }) 
           {tab === "tarifs" ? <TarifsEditor initial={initialContent.tarifs} /> : null}
           {tab === "photos" ? <PhotosEditor initial={initialContent.problemes} /> : null}
           {tab === "textes" ? <TextEditor initial={initialContent} /> : null}
+          {tab === "coordonnees" ? (
+            <ContactEditor initialContact={initialContent.contact} initialLegal={initialContent.legal} />
+          ) : null}
         </div>
       </div>
     </div>

@@ -4,6 +4,8 @@ import { getFile, putFile } from "@/lib/githubContent";
 
 const CONTENT_PATH = "src/data/content.json";
 const ALLOWED_SECTIONS = [
+  "contact",
+  "legal",
   "brand",
   "hero",
   "promo",

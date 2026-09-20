@@ -1,4 +1,9 @@
 {
+  "legal": {
+    "companyName": "",
+    "siret": "",
+    "address": ""
+  },
   "brand": {
     "slogan": "Votre serrurier, quand vous en avez besoin.",
     "positioning": "Serrurier d'urgence près de chez vous"

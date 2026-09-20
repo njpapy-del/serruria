@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { SaveButton, saveSection } from "@/components/admin/SaveButton";
 
-function Field({
+export function Field({
   label,
   value,
   onChange,
@@ -36,7 +36,7 @@ function Field({
   );
 }
 
-function Block({
+export function Block({
   title,
   section,
   value,

@@ -11,6 +11,25 @@
 
 import content from "./content.json";
 
+function digitsOnly(value: string): string {
+  return (value || "").replace(/\D/g, "");
+}
+
+/** "0754471250" -> "07 54 47 12 50". Repli sur la valeur brute si le format est inattendu. */
+function formatPhoneDisplay(raw: string): string {
+  const digits = digitsOnly(raw);
+  if (digits.length !== 10) return raw;
+  return digits.match(/.{1,2}/g)!.join(" ");
+}
+
+/** "0754471250" -> "tel:+33754471250". */
+function toTelHref(raw: string): string {
+  const digits = digitsOnly(raw);
+  if (!digits) return "";
+  const national = digits.startsWith("0") ? digits.slice(1) : digits;
+  return `tel:+33${national}`;
+}
+
 export type Ville = {
   slug: string;
   nom: string;
@@ -56,12 +75,14 @@ export const siteConfig = {
     positioning: content.brand.positioning,
   },
 
+  // Téléphone, WhatsApp, email et infos légales sont modifiables depuis /admin
+  // (onglet "Coordonnées") — content.json est la source, jamais codée en dur ici.
   contact: {
-    phoneDisplay: "07 54 47 12 50",
-    phoneHref: "tel:+33754471250",
+    phoneDisplay: formatPhoneDisplay(content.contact.phoneNumber),
+    phoneHref: toTelHref(content.contact.phoneNumber),
 
-    // PLACEHOLDER — laisser vide désactive le bouton WhatsApp (pas de faux numéro affiché).
-    whatsappNumber: "",
+    // Vide désactive le bouton WhatsApp (pas de faux numéro affiché).
+    whatsappNumber: content.contact.whatsappNumber,
     get whatsappHref() {
       return this.whatsappNumber
         ? `https://wa.me/${this.whatsappNumber}?text=${encodeURIComponent(
@@ -70,17 +91,19 @@ export const siteConfig = {
         : null;
     },
 
-    email: "", // PLACEHOLDER
+    email: content.contact.email,
   },
 
   legal: {
-    // PLACEHOLDER — informations légales réelles à fournir par le client.
-    companyName: "",
-    siret: "",
-    address: "",
-    // Passer à true uniquement lorsque toutes les infos légales ci-dessus sont réelles
-    // (contrôle l'affichage des données structurées LocalBusiness/Locksmith).
-    dataConfirmed: false,
+    companyName: content.legal.companyName,
+    siret: content.legal.siret,
+    address: content.legal.address,
+    // true dès que les 3 champs ci-dessus sont renseignés (contrôle l'affichage
+    // des données structurées LocalBusiness/Locksmith) — pas de bascule manuelle
+    // séparée à oublier : si l'admin a rempli ces champs, l'info est réelle.
+    get dataConfirmed() {
+      return Boolean(this.companyName && this.siret && this.address);
+    },
   },
 
   hero: {
