@@ -250,5 +250,10 @@
       "question": "Quels types de serrures remplacez-vous ?",
       "reponse": "Nous intervenons sur la plupart des types de serrures et cylindres. N'hésitez pas à nous décrire votre serrure lors de votre appel."
     }
-  ]
+  ],
+  "contact": {
+    "phoneNumber": "0754471250",
+    "whatsappNumber": "",
+    "email": ""
+  }
 }
