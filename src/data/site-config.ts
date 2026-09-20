@@ -141,6 +141,23 @@ export const siteConfig = {
     ] as Technicien[],
   },
 
+  // Partenaires assurances confirmés par le client. Logos officiels sourcés
+  // directement depuis Wikimedia Commons (jamais copiés depuis un site tiers).
+  partners: [
+    { name: "AXA", logo: "/images/partners/axa.svg" },
+    { name: "Allianz", logo: "/images/partners/allianz.svg" },
+    { name: "Generali", logo: "/images/partners/generali.svg" },
+    { name: "Groupama", logo: "/images/partners/groupama.svg" },
+    { name: "MACIF", logo: "/images/partners/macif.svg" },
+    { name: "MAIF", logo: "/images/partners/maif.svg" },
+    { name: "MAAF", logo: "/images/partners/maaf.jpg" },
+    { name: "Matmut", logo: "/images/partners/matmut.svg" },
+    { name: "Crédit Agricole", logo: "/images/partners/credit-agricole.svg" },
+    { name: "LCL", logo: "/images/partners/lcl.svg" },
+    { name: "BNP Paribas", logo: "/images/partners/bnp-paribas.svg" },
+    { name: "Caisse d'Épargne", logo: "/images/partners/caisse-epargne.svg" },
+  ],
+
   // NE PAS INVENTER LES PRIX : priceFrom reste `null` jusqu'à ce que le client
   // fournisse les vrais tarifs. `null` affiche « À partir de XX € ». Modifiable depuis /admin.
   tarifs: content.tarifs as Tarif[],

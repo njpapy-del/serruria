@@ -1,4 +1,5 @@
 import { Hero } from "@/components/sections/Hero";
+import { PartnersMarquee } from "@/components/sections/PartnersMarquee";
 import { TeamMapSection } from "@/components/sections/TeamMapSection";
 import { ProblemGrid } from "@/components/sections/ProblemGrid";
 import { UrgencySection } from "@/components/sections/UrgencySection";
@@ -15,6 +16,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <PartnersMarquee />
       <TeamMapSection />
       <ProblemGrid />
       <UrgencySection />
