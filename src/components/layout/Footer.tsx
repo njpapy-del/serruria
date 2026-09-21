@@ -25,6 +25,13 @@ export function Footer() {
                 {siteConfig.contact.phoneDisplay}
               </a>
             </li>
+            {siteConfig.contact.email ? (
+              <li>
+                <a href={`mailto:${siteConfig.contact.email}`} className="hover:text-amber-400">
+                  {siteConfig.contact.email}
+                </a>
+              </li>
+            ) : null}
           </ul>
         </div>
 
