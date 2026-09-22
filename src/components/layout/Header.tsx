@@ -6,6 +6,7 @@ import { MobileNav } from "@/components/layout/MobileNav";
 
 const NAV_LINKS = [
   { href: "/#services", label: "Services" },
+  { href: "/#confiance", label: "Pourquoi nous choisir ?" },
   { href: "/#tarifs", label: "Tarifs" },
   { href: "/#zones", label: "Zones d'intervention" },
   { href: "/#avis", label: "Avis" },

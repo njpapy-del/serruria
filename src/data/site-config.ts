@@ -45,6 +45,12 @@ export type Tarif = {
   priceFrom: number | null;
   /** true = prix fixe garanti ("49 € prix fixe") plutôt qu'un prix de départ variable. */
   fixed?: boolean;
+  /**
+   * Texte libre affiché à la place du prix (ex. "Sur devis selon modèle").
+   * Prioritaire sur `priceFrom` s'il est renseigné. Si vide ET `priceFrom`
+   * vide, affiche "Sur devis" par défaut.
+   */
+  customText?: string;
 };
 
 export type Avis = {

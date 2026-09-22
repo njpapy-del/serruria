@@ -44,6 +44,11 @@ export function Footer() {
               </Link>
             </li>
             <li>
+              <Link href="/#confiance" className="hover:text-amber-400">
+                Pourquoi nous choisir ?
+              </Link>
+            </li>
+            <li>
               <Link href="/#zones" className="hover:text-amber-400">
                 Zones d&apos;intervention
               </Link>

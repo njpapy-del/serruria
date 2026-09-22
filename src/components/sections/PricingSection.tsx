@@ -23,11 +23,13 @@ export function PricingSection() {
               ) : null}
             </span>
             <span className="whitespace-nowrap font-bold text-amber-600">
-              {tarif.priceFrom == null
-                ? "À partir de XX €"
-                : tarif.fixed
-                  ? `${tarif.priceFrom} € prix fixe`
-                  : `À partir de ${tarif.priceFrom} €`}
+              {tarif.customText
+                ? tarif.customText
+                : tarif.priceFrom == null
+                  ? "Sur devis"
+                  : tarif.fixed
+                    ? `${tarif.priceFrom} € prix fixe`
+                    : `À partir de ${tarif.priceFrom} €`}
             </span>
           </div>
         ))}

@@ -97,43 +97,50 @@
       "id": "ouverture-porte",
       "label": "Ouverture de porte",
       "priceFrom": 49,
-      "fixed": false
+      "fixed": false,
+      "customText": ""
     },
     {
       "id": "porte-claquee",
       "label": "Porte claquée",
       "priceFrom": 49,
-      "fixed": false
+      "fixed": false,
+      "customText": ""
     },
     {
       "id": "cle-cassee",
       "label": "Clé cassée",
       "priceFrom": 79,
-      "fixed": false
+      "fixed": false,
+      "customText": ""
     },
     {
       "id": "changement-cylindre",
       "label": "Changement de cylindre",
       "priceFrom": 80,
-      "fixed": false
+      "fixed": false,
+      "customText": ""
     },
     {
       "id": "changement-serrure",
       "label": "Changement de serrure",
       "priceFrom": 119,
-      "fixed": false
+      "fixed": false,
+      "customText": ""
     },
     {
       "id": "mise-en-securite",
       "label": "Mise en sécurité",
       "priceFrom": 99,
-      "fixed": false
+      "fixed": false,
+      "customText": ""
     },
     {
       "id": "blindage",
       "label": "Blindage",
       "priceFrom": null,
-      "fixed": false
+      "fixed": false,
+      "customText": ""
     }
   ],
   "etapes": [

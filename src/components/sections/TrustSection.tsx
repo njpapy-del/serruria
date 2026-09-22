@@ -4,7 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 
 export function TrustSection() {
   return (
-    <Section className="bg-slate-50">
+    <Section id="confiance" className="bg-slate-50">
       <SectionHeading title={`Pourquoi choisir ${siteConfig.brand.name} ?`} />
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {siteConfig.confiance.map((item) => (
