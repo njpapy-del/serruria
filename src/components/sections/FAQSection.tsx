@@ -8,8 +8,22 @@ import { Section, SectionHeading } from "@/components/ui/Section";
 export function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: siteConfig.faq.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.reponse },
+    })),
+  };
+
   return (
     <Section id="faq" className="bg-slate-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <SectionHeading title="Questions fréquentes" />
       <div className="mx-auto max-w-2xl divide-y divide-slate-200 rounded-2xl bg-white card-elevated">
         {siteConfig.faq.map((item, index) => {

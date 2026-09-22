@@ -18,7 +18,7 @@ export function Header() {
       <div className="container-srr flex h-16 items-center justify-between gap-3 lg:h-20">
         <Link
           href="/"
-          className="min-w-0 flex-1 truncate text-base font-extrabold leading-tight tracking-tight text-navy-900 sm:text-lg lg:flex-initial lg:text-2xl"
+          className="min-w-0 flex-1 truncate text-sm font-extrabold leading-tight tracking-tight text-navy-900 sm:text-lg lg:flex-initial lg:text-2xl"
         >
           {siteConfig.brand.name}
         </Link>
@@ -47,9 +47,6 @@ export function Header() {
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-2 lg:hidden">
-          <Link href="/admin" aria-label="Espace admin" className="p-1 text-slate-300">
-            <Lock className="h-5 w-5" />
-          </Link>
           <MobileNav />
           <PhoneCTA location="header_mobile" size="sm" label="APPELER" />
         </div>

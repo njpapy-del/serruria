@@ -50,8 +50,15 @@ export function localBusinessJsonLd() {
     "@context": "https://schema.org",
     "@type": "Locksmith",
     name: legal.companyName || brand.name,
+    url: SITE_URL,
     telephone: contact.phoneDisplay,
-    address: legal.address,
-    areaServed: siteConfig.villes.map((v) => v.nom),
+    email: contact.email || undefined,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: legal.address,
+    },
+    ...(siteConfig.villes.length > 0
+      ? { areaServed: siteConfig.villes.map((v) => v.nom) }
+      : {}),
   };
 }

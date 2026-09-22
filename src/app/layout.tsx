@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Script from "next/script";
 import "./globals.css";
 import { SiteChrome } from "@/components/layout/SiteChrome";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, localBusinessJsonLd } from "@/lib/seo";
 import { siteConfig } from "@/data/site-config";
 
 export const metadata: Metadata = {
@@ -15,10 +15,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const gtmId = siteConfig.tracking.gtmId;
+  const jsonLd = localBusinessJsonLd();
 
   return (
     <html lang="fr">
       <body className="antialiased">
+        {jsonLd ? (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        ) : null}
+
         {gtmId ? (
           <>
             <Script id="gtm-init" strategy="afterInteractive">

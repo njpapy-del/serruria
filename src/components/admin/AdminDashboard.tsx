@@ -6,6 +6,7 @@ import { TarifsEditor } from "@/components/admin/TarifsEditor";
 import { PhotosEditor } from "@/components/admin/PhotosEditor";
 import { TextEditor } from "@/components/admin/TextEditor";
 import { ContactEditor } from "@/components/admin/ContactEditor";
+import { siteConfig } from "@/data/site-config";
 import type content from "@/data/content.json";
 
 type Content = typeof content;
@@ -32,12 +33,15 @@ export function AdminDashboard({ initialContent }: { initialContent: Content }) 
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="border-b border-slate-200 bg-white">
-        <div className="container-srr flex h-16 items-center justify-between">
-          <p className="font-bold text-navy-900">Espace admin — Serrurerie Louis &amp; Fils</p>
+        <div className="container-srr flex min-h-16 flex-wrap items-center justify-between gap-3 py-3">
+          <p className="font-bold text-navy-900">
+            <span className="hidden sm:inline">Espace admin — </span>
+            {siteConfig.brand.name}
+          </p>
           <button
             type="button"
             onClick={handleLogout}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-navy-700"
+            className="flex-shrink-0 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-navy-700"
           >
             Se déconnecter
           </button>
@@ -45,7 +49,7 @@ export function AdminDashboard({ initialContent }: { initialContent: Content }) 
       </div>
 
       <div className="container-srr py-8">
-        <div className="mb-6 flex gap-2">
+        <div className="mb-6 flex flex-wrap gap-2">
           {TABS.map((t) => (
             <button
               key={t.id}
