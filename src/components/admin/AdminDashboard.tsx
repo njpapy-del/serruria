@@ -6,12 +6,14 @@ import { TarifsEditor } from "@/components/admin/TarifsEditor";
 import { PhotosEditor } from "@/components/admin/PhotosEditor";
 import { TextEditor } from "@/components/admin/TextEditor";
 import { ContactEditor } from "@/components/admin/ContactEditor";
+import { LeadsList } from "@/components/admin/LeadsList";
 import { siteConfig } from "@/data/site-config";
 import type content from "@/data/content.json";
 
 type Content = typeof content;
 
 const TABS = [
+  { id: "leads", label: "Leads" },
   { id: "tarifs", label: "Tarifs" },
   { id: "photos", label: "Photos" },
   { id: "textes", label: "Textes" },
@@ -22,7 +24,7 @@ type TabId = (typeof TABS)[number]["id"];
 
 export function AdminDashboard({ initialContent }: { initialContent: Content }) {
   const router = useRouter();
-  const [tab, setTab] = useState<TabId>("tarifs");
+  const [tab, setTab] = useState<TabId>("leads");
 
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
@@ -65,6 +67,7 @@ export function AdminDashboard({ initialContent }: { initialContent: Content }) 
         </div>
 
         <div className="rounded-2xl bg-white p-6 card-elevated">
+          {tab === "leads" ? <LeadsList /> : null}
           {tab === "tarifs" ? <TarifsEditor initial={initialContent.tarifs} /> : null}
           {tab === "photos" ? <PhotosEditor initial={initialContent.problemes} /> : null}
           {tab === "textes" ? <TextEditor initial={initialContent} /> : null}
