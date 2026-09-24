@@ -96,7 +96,7 @@
     {
       "id": "ouverture-porte",
       "label": "Ouverture de porte",
-      "priceFrom": 49,
+      "priceFrom": 39,
       "fixed": false,
       "customText": ""
     },
@@ -140,7 +140,7 @@
       "label": "Blindage",
       "priceFrom": null,
       "fixed": false,
-      "customText": ""
+      "customText": "Sur Devis"
     }
   ],
   "etapes": [
