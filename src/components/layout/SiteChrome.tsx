@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Header } from "@/components/layout/Header";
-import { PromoBar } from "@/components/layout/PromoBar";
 import { Footer } from "@/components/layout/Footer";
 import { StickyMobileBar } from "@/components/layout/StickyMobileBar";
 import { ConsentBanner } from "@/components/layout/ConsentBanner";
@@ -20,7 +19,6 @@ export function SiteChrome({ children }: { children: ReactNode }) {
   return (
     <>
       <Header />
-      <PromoBar />
       <main>{children}</main>
       <Footer />
       <StickyMobileBar />
