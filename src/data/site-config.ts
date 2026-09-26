@@ -22,12 +22,12 @@ function formatPhoneDisplay(raw: string): string {
   return digits.match(/.{1,2}/g)!.join(" ");
 }
 
-/** "0754471250" -> "tel:+33754471250". */
+/** "0754471250" -> "tel:0754471250" (format national). */
 function toTelHref(raw: string): string {
   const digits = digitsOnly(raw);
   if (!digits) return "";
-  const national = digits.startsWith("0") ? digits.slice(1) : digits;
-  return `tel:+33${national}`;
+  const national = digits.startsWith("33") && digits.length === 11 ? `0${digits.slice(2)}` : digits;
+  return `tel:${national}`;
 }
 
 export type Ville = {
