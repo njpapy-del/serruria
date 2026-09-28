@@ -47,7 +47,8 @@ export async function POST(request: Request) {
   // un lead même si l'email échoue ou n'est pas configuré. Récupérable ensuite
   // depuis /admin (onglet Leads).
   let savedToBlob = false;
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  // Store relié par token classique ou par OIDC (BLOB_STORE_ID).
+  if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
     try {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       // "public" est le seul mode d'accès de Vercel Blob (pas d'auth sur l'URL

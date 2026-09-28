@@ -7,7 +7,7 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID)) {
     return NextResponse.json({ error: "blob_not_configured", leads: [] }, { status: 200 });
   }
 
