@@ -2,6 +2,8 @@ import { siteConfig } from "@/data/site-config";
 import { Section, SectionHeading } from "@/components/ui/Section";
 import { PhoneCTA } from "@/components/ui/PhoneCTA";
 import { TeamMapClient } from "@/components/sections/TeamMapClient";
+import { departements } from "@/data/departements";
+import Link from "next/link";
 
 const STATUS_LABEL: Record<string, string> = {
   disponible: "Disponible",
@@ -66,6 +68,29 @@ export function TeamMapSection() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Départements couverts : mêmes couleurs que sur la carte */}
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        {departements.map((d) => {
+          const chip = (
+            <>
+              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: d.color }} />
+              {d.nom} <span className="text-slate-400">({d.code})</span>
+            </>
+          );
+          const cls =
+            "flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-900";
+          return d.slug ? (
+            <Link key={d.code} href={`/serrurier/${d.slug}`} className={`${cls} hover:border-amber-400`}>
+              {chip}
+            </Link>
+          ) : (
+            <span key={d.code} className={cls}>
+              {chip}
+            </span>
+          );
+        })}
       </div>
     </Section>
   );
