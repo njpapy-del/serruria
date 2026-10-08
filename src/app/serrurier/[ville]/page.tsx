@@ -26,10 +26,11 @@ export async function generateMetadata({
   const { ville: slug } = await params;
   const ville = findVille(slug);
   if (!ville) return {};
+  const lieu = ville.lieu ?? `à ${ville.nom}`;
 
   return buildMetadata({
     title: `Serrurier ${ville.nom} — ${siteConfig.brand.name}`,
-    description: `Serrurier d'urgence à ${ville.nom} (${ville.departement}). Ouverture de porte, clé cassée, serrure bloquée. Devis gratuit, tarif confirmé avant intervention.`,
+    description: `Serrurier d'urgence ${lieu} (${ville.departement}). Ouverture de porte, clé cassée, serrure bloquée. Devis gratuit, tarif confirmé avant intervention.`,
     path: `/serrurier/${ville.slug}`,
   });
 }
@@ -42,16 +43,17 @@ export default async function VillePage({
   const { ville: slug } = await params;
   const ville = findVille(slug);
   if (!ville) notFound();
+  const lieu = ville.lieu ?? `à ${ville.nom}`;
 
   return (
     <>
       <section className="bg-navy-radial py-16 text-white lg:py-24">
         <div className="container-srr text-center">
           <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-            Serrurier à {ville.nom}
+            Serrurier {lieu}
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-lg text-slate-300">
-            {siteConfig.brand.name} intervient à {ville.nom} ({ville.departement})
+            {siteConfig.brand.name} intervient {lieu} ({ville.departement})
             {ville.secteurs.length > 0 ? ` et dans les secteurs suivants : ${ville.secteurs.join(", ")}.` : "."}
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">

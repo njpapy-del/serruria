@@ -34,6 +34,8 @@ export type Ville = {
   slug: string;
   nom: string;
   departement: string;
+  /** Tournure avec préposition ("à Paris", "en Essonne", "dans les Yvelines"). Défaut : "à {nom}". */
+  lieu?: string;
   /** Communes ou arrondissements couverts autour de cette ville */
   secteurs: string[];
 };
@@ -228,8 +230,17 @@ export const siteConfig = {
     },
   ] as Avis[],
 
-  // NE PAS INVENTER DE ZONES. Reste vide tant que le client n'a pas fourni les villes réellement desservies.
-  villes: [] as Ville[],
+  // Départements d'intervention fournis par le client. NE PAS INVENTER DE ZONES.
+  villes: [
+    { slug: "paris", nom: "Paris", departement: "Paris (75)", lieu: "à Paris", secteurs: [] },
+    { slug: "seine-et-marne", nom: "Seine-et-Marne", departement: "Département 77", lieu: "en Seine-et-Marne", secteurs: [] },
+    { slug: "yvelines", nom: "Yvelines", departement: "Département 78", lieu: "dans les Yvelines", secteurs: [] },
+    { slug: "essonne", nom: "Essonne", departement: "Département 91", lieu: "en Essonne", secteurs: [] },
+    { slug: "hauts-de-seine", nom: "Hauts-de-Seine", departement: "Département 92", lieu: "dans les Hauts-de-Seine", secteurs: [] },
+    { slug: "seine-saint-denis", nom: "Seine-Saint-Denis", departement: "Département 93", lieu: "en Seine-Saint-Denis", secteurs: [] },
+    { slug: "val-de-marne", nom: "Val-de-Marne", departement: "Département 94", lieu: "dans le Val-de-Marne", secteurs: [] },
+    { slug: "val-d-oise", nom: "Val-d'Oise", departement: "Département 95", lieu: "dans le Val-d'Oise", secteurs: [] },
+  ] as Ville[],
 
   // Modifiable depuis /admin.
   faq: content.faq,
