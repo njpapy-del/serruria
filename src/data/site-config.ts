@@ -132,20 +132,20 @@ export const siteConfig = {
   // Carte de l'équipe : positions illustratives dans la région parisienne, à
   // affiner ou reconnecter à un vrai suivi de flotte quand disponible.
   team: {
-    mapCenter: { lat: 48.75, lng: 2.5 },
+    mapCenter: { lat: 48.83, lng: 2.45 },
     mapZoom: 9,
     technicians: [
       { name: "Damien", initials: "DA", zone: "Paris (75)", lat: 48.8566, lng: 2.3522, status: "disponible", mission: "Changement de serrure rue de Rivoli — Terminée il y a 6 min", eta: "~15 min" },
       { name: "Pascal", initials: "PA", zone: "Hauts-de-Seine (92)", lat: 48.8924, lng: 2.2469, status: "disponible", mission: "Ouverture de porte à Levallois-Perret — Terminée il y a 4 min", eta: "~18 min" },
       { name: "Joseph", initials: "JO", zone: "Seine-Saint-Denis (93)", lat: 48.9362, lng: 2.3574, status: "intervention", mission: "Ouverture de porte blindée à Saint-Denis (en cours)", eta: "Libre dans ~20 min" },
       { name: "Mohamed", initials: "MO", zone: "Val-de-Marne (94)", lat: 48.7911, lng: 2.4139, status: "disponible", mission: "Mise en sécurité à Créteil — Terminée il y a 11 min", eta: "~12 min" },
-      { name: "Ibrahim", initials: "IB", zone: "Seine-Saint-Denis (93)", lat: 48.9089, lng: 2.4467, status: "disponible", mission: "Clé cassée à Aulnay-sous-Bois — Terminée il y a 9 min", eta: "~16 min" },
-      { name: "Raphaël", initials: "RA", zone: "Paris (75)", lat: 48.8737, lng: 2.3614, status: "disponible", mission: "Changement de cylindre à Montmartre — Terminée il y a 22 min", eta: "~10 min" },
+      { name: "Ibrahim", initials: "IB", zone: "Seine-et-Marne (77)", lat: 48.9601, lng: 2.8788, status: "disponible", mission: "Clé cassée à Meaux — Terminée il y a 9 min", eta: "~16 min" },
+      { name: "Raphaël", initials: "RA", zone: "Val-d'Oise (95)", lat: 49.0364, lng: 2.0761, status: "disponible", mission: "Changement de cylindre à Cergy — Terminée il y a 22 min", eta: "~10 min" },
       { name: "Uriel", initials: "UR", zone: "Hauts-de-Seine (92)", lat: 48.8404, lng: 2.2137, status: "intervention", mission: "Serrure bloquée à Boulogne-Billancourt (en cours)", eta: "Libre dans ~13 min" },
-      { name: "Momo", initials: "MM", zone: "Val-de-Marne (94)", lat: 48.8323, lng: 2.4425, status: "disponible", mission: "Sécurisation de porte à Vincennes — Terminée il y a 15 min", eta: "~14 min" },
+      { name: "Momo", initials: "MM", zone: "Yvelines (78)", lat: 48.8049, lng: 2.1204, status: "disponible", mission: "Sécurisation de porte à Versailles — Terminée il y a 15 min", eta: "~14 min" },
       { name: "Nathan", initials: "NA", zone: "Paris (75)", lat: 48.8462, lng: 2.3372, status: "disponible", mission: "Ouverture de porte claquée à Montparnasse — Terminée il y a 3 min", eta: "~17 min" },
       { name: "Antoine", initials: "AN", zone: "Seine-Saint-Denis (93)", lat: 48.8631, lng: 2.4419, status: "disponible", mission: "Changement de serrure à Montreuil — Terminée il y a 8 min", eta: "~19 min" },
-      { name: "Yanis", initials: "YA", zone: "Val-de-Marne (94)", lat: 48.8144, lng: 2.3958, status: "disponible", mission: "Blindage de porte à Ivry-sur-Seine — Terminée il y a 25 min", eta: "~11 min" },
+      { name: "Yanis", initials: "YA", zone: "Essonne (91)", lat: 48.6239, lng: 2.4290, status: "disponible", mission: "Blindage de porte à Évry-Courcouronnes — Terminée il y a 25 min", eta: "~11 min" },
     ] as Technicien[],
   },
 
