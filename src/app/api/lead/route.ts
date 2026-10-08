@@ -72,14 +72,20 @@ export async function POST(request: Request) {
   let emailSent = false;
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL;
-  const toEmail = process.env.LEAD_NOTIFICATION_EMAIL;
+  // Une ou plusieurs adresses séparées par des virgules.
+  const toEmails = (process.env.LEAD_NOTIFICATION_EMAIL ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
 
-  if (apiKey && fromEmail && toEmail) {
+  if (apiKey && fromEmail && toEmails.length > 0) {
     try {
       const resend = new Resend(apiKey);
-      await resend.emails.send({
+      // Le SDK Resend ne lève pas d'exception sur un refus de l'API (clé
+      // invalide, domaine non vérifié…) : il renvoie `error`.
+      const { error } = await resend.emails.send({
         from: fromEmail,
-        to: toEmail,
+        to: toEmails,
         subject: `Nouvelle demande de rappel — ${siteConfig.brand.name}`,
         text: [
           `Nom : ${nom}`,
@@ -89,6 +95,7 @@ export async function POST(request: Request) {
           `Message : ${message || "—"}`,
         ].join("\n"),
       });
+      if (error) throw error;
       emailSent = true;
     } catch (error) {
       console.error("[lead] Échec d'envoi Resend:", error);
