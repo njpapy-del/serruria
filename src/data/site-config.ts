@@ -22,6 +22,13 @@ function formatPhoneDisplay(raw: string): string {
   return digits.match(/.{1,2}/g)!.join(" ");
 }
 
+/** "0754471250" ou "33754471250" -> "33754471250" (format attendu par wa.me). */
+function toWhatsappNumber(raw: string): string {
+  const digits = digitsOnly(raw);
+  if (digits.length === 10 && digits.startsWith("0")) return `33${digits.slice(1)}`;
+  return digits;
+}
+
 /** "0754471250" -> "tel:0754471250" (format national). */
 function toTelHref(raw: string): string {
   const digits = digitsOnly(raw);
@@ -90,11 +97,11 @@ export const siteConfig = {
     phoneHref: toTelHref(content.contact.phoneNumber),
 
     // Vide désactive le bouton WhatsApp (pas de faux numéro affiché).
-    whatsappNumber: content.contact.whatsappNumber,
+    whatsappNumber: toWhatsappNumber(content.contact.whatsappNumber),
     get whatsappHref() {
       return this.whatsappNumber
         ? `https://wa.me/${this.whatsappNumber}?text=${encodeURIComponent(
-            "Bonjour, j'ai besoin d'un serrurier."
+            "Bonjour, je souhaite demander une intervention de serrurerie.\nMa ville est : \nMon problème est : "
           )}`
         : null;
     },

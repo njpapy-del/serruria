@@ -6,7 +6,8 @@ import { pushEvent } from "@/lib/tracking";
 
 type Props = {
   variant?: "solid" | "outline" | "text";
-  size?: "sm" | "md" | "lg";
+  /** "bar" : barre d'action mobile (deux boutons côte à côte, 48 px de haut). */
+  size?: "sm" | "md" | "lg" | "bar";
   /** Par défaut : le numéro de téléphone du site. */
   label?: string;
   className?: string;
@@ -17,6 +18,7 @@ const sizeClasses: Record<NonNullable<Props["size"]>, string> = {
   sm: "px-4 py-2 text-sm",
   md: "px-5 py-3 text-base",
   lg: "px-7 py-4 text-lg",
+  bar: "min-h-12 px-3 py-2 text-[15px]",
 };
 
 const variantClasses: Record<NonNullable<Props["variant"]>, string> = {

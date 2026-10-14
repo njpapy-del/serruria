@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";
 import "./globals.css";
@@ -11,6 +11,15 @@ export const metadata: Metadata = {
     title: `${siteConfig.brand.name} — ${siteConfig.brand.positioning}`,
   }),
   metadataBase: new URL(siteConfig.siteUrl),
+};
+
+// viewport-fit=cover : nécessaire pour que env(safe-area-inset-bottom) soit
+// renseigné sur iPhone (barre d'action mobile au-dessus de la barre système).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0a0f1c",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

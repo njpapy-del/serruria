@@ -6,7 +6,7 @@ import { pushEvent } from "@/lib/tracking";
 
 export function Footer() {
   return (
-    <footer className="bg-navy-950 pb-24 pt-16 text-slate-300 lg:pb-16">
+    <footer className="bg-navy-950 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-16 text-slate-300 lg:pb-16">
       <div className="container-srr grid gap-10 lg:grid-cols-4">
         <div>
           <p className="text-xl font-extrabold text-white">{siteConfig.brand.name}</p>
