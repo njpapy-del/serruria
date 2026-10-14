@@ -13,7 +13,6 @@ export function StickyMobileBar() {
       <PhoneCTA
         location="sticky_bar"
         size="md"
-        label="APPELER"
         className={hasWhatsapp ? "flex-1" : "w-full"}
       />
       {hasWhatsapp ? (

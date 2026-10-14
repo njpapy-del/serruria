@@ -86,7 +86,7 @@ export function NotificationPopup() {
       </div>
 
       <div className="mt-3 flex gap-2">
-        <PhoneCTA location="notification_popup" size="sm" label="Appeler" className="flex-1 px-3" />
+        <PhoneCTA location="notification_popup" size="sm" className="flex-1 px-3" />
         <QuoteCTA
           location="notification_popup"
           label="Devis"

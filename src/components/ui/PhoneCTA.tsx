@@ -7,6 +7,7 @@ import { pushEvent } from "@/lib/tracking";
 type Props = {
   variant?: "solid" | "outline" | "text";
   size?: "sm" | "md" | "lg";
+  /** Par défaut : le numéro de téléphone du site. */
   label?: string;
   className?: string;
   location: string;
@@ -28,7 +29,7 @@ const variantClasses: Record<NonNullable<Props["variant"]>, string> = {
 export function PhoneCTA({
   variant = "solid",
   size = "md",
-  label = "APPELER MAINTENANT",
+  label = siteConfig.contact.phoneDisplay,
   className = "",
   location,
 }: Props) {
@@ -36,8 +37,8 @@ export function PhoneCTA({
     <a
       href={siteConfig.contact.phoneHref}
       onClick={() => pushEvent("phone_click", { location })}
-      className={`inline-flex items-center justify-center gap-2 rounded-full font-bold tracking-wide transition-colors ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
-      aria-label={`Appeler ${siteConfig.brand.name} maintenant`}
+      className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-bold tracking-wide transition-colors ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
+      aria-label={`Appeler ${siteConfig.brand.name} au ${siteConfig.contact.phoneDisplay}`}
     >
       <Phone className="h-5 w-5" aria-hidden="true" />
       {label}

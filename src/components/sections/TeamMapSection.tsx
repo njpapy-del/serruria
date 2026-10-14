@@ -60,7 +60,6 @@ export function TeamMapSection() {
                   <PhoneCTA
                     location={`team_map_${tech.name}`}
                     size="sm"
-                    label="Appeler"
                     className="px-3 py-1.5 text-xs"
                   />
                 </div>

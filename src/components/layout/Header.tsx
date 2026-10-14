@@ -49,7 +49,7 @@ export function Header() {
 
         <div className="flex flex-shrink-0 items-center gap-2 lg:hidden">
           <MobileNav />
-          <PhoneCTA location="header_mobile" size="sm" label="APPELER" />
+          <PhoneCTA location="header_mobile" size="sm" />
         </div>
       </div>
     </header>
