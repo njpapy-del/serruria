@@ -14,7 +14,7 @@ export function UrgencySection() {
         </p>
         <div className="flex flex-col gap-3 sm:flex-row">
           <PhoneCTA location="urgency_section" size="lg" />
-          <QuoteCTA location="urgency_section" label="DEMANDER UN DEVIS" />
+          <QuoteCTA location="urgency_section" />
         </div>
       </div>
     </section>

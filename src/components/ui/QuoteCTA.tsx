@@ -8,7 +8,7 @@ type Props = {
   location: string;
 };
 
-export function QuoteCTA({ label = "DEMANDER UN DEVIS GRATUIT", className = "", location }: Props) {
+export function QuoteCTA({ label = "Demander une intervention", className = "", location }: Props) {
   return (
     <a
       href="#lead-form"
