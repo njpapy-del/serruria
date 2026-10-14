@@ -3,7 +3,7 @@ import { Section, SectionHeading } from "@/components/ui/Section";
 
 export function PricingSection() {
   return (
-    <Section id="tarifs">
+    <Section id="tarifs" className="bg-slate-50">
       <SectionHeading
         title="Des tarifs clairs avant intervention"
         description="Le tarif exact est confirmé avec vous avant le début de toute intervention."

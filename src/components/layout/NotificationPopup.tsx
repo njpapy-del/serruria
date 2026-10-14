@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, Wrench } from "lucide-react";
-import { siteConfig } from "@/data/site-config";
 import { PhoneCTA } from "@/components/ui/PhoneCTA";
 import { QuoteCTA } from "@/components/ui/QuoteCTA";
 
@@ -10,9 +9,26 @@ import { QuoteCTA } from "@/components/ui/QuoteCTA";
 // "losange" rotatif, glissement) — la sortie reste toujours un fondu discret.
 const ENTER_ANIMATIONS = ["popup-anim-fade", "popup-anim-bounce", "popup-anim-diamond", "popup-anim-slide"];
 
-const FIRST_DELAY_MS = 9000;
-const VISIBLE_MS = 9000;
-const HIDDEN_MS = 25000;
+// Affichée une seule fois par session (pas de relance en boucle).
+const FIRST_DELAY_MS = 20000;
+const VISIBLE_MS = 12000;
+const SEEN_KEY = "srr_popup_seen";
+
+function alreadySeen(): boolean {
+  try {
+    return window.sessionStorage.getItem(SEEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markSeen() {
+  try {
+    window.sessionStorage.setItem(SEEN_KEY, "1");
+  } catch {
+    // Stockage indisponible : la popup pourra réapparaître à la prochaine page.
+  }
+}
 
 export function NotificationPopup() {
   const [phase, setPhase] = useState<"hidden" | "entering" | "leaving">("hidden");
@@ -22,29 +38,22 @@ export function NotificationPopup() {
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
 
-    function scheduleShow(delay: number) {
-      timers.push(
-        setTimeout(() => {
-          if (dismissedRef.current) return;
-          setPhase("entering");
-          timers.push(setTimeout(() => scheduleHide(), VISIBLE_MS));
-        }, delay)
-      );
-    }
+    if (alreadySeen()) return;
 
-    function scheduleHide() {
-      if (dismissedRef.current) return;
-      setPhase("leaving");
-      timers.push(
-        setTimeout(() => {
-          setPhase("hidden");
-          setAnimIndex((i) => (i + 1) % ENTER_ANIMATIONS.length);
-          scheduleShow(HIDDEN_MS);
-        }, 400)
-      );
-    }
-
-    scheduleShow(FIRST_DELAY_MS);
+    timers.push(
+      setTimeout(() => {
+        if (dismissedRef.current) return;
+        markSeen();
+        setAnimIndex(Math.floor(Math.random() * ENTER_ANIMATIONS.length));
+        setPhase("entering");
+        timers.push(
+          setTimeout(() => {
+            setPhase("leaving");
+            timers.push(setTimeout(() => setPhase("hidden"), 400));
+          }, VISIBLE_MS)
+        );
+      }, FIRST_DELAY_MS)
+    );
     return () => timers.forEach(clearTimeout);
   }, []);
 
@@ -80,7 +89,7 @@ export function NotificationPopup() {
         <div>
           <p className="text-sm font-bold text-navy-900">Besoin d&apos;un serrurier ?</p>
           <p className="mt-0.5 text-xs text-slate-500">
-            {siteConfig.brand.name} vous répond tout de suite.
+            Appelez-nous ou décrivez votre situation en quelques secondes.
           </p>
         </div>
       </div>
@@ -89,7 +98,7 @@ export function NotificationPopup() {
         <PhoneCTA location="notification_popup" size="sm" className="flex-1 px-3" />
         <QuoteCTA
           location="notification_popup"
-          label="Devis"
+          label="Formulaire"
           className="flex-1 rounded-full border border-navy-900 px-3 py-2 text-center text-sm font-bold text-navy-900 hover:bg-navy-900/5"
         />
       </div>

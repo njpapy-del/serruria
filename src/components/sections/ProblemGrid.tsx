@@ -28,8 +28,11 @@ const ICONS: Record<string, typeof DoorClosed> = {
 
 export function ProblemGrid() {
   return (
-    <Section className="bg-slate-50">
-      <SectionHeading title="Quel est votre problème ?" />
+    <Section id="urgences" className="bg-slate-50">
+      <SectionHeading
+        title="Urgences prises en charge"
+        description="Choisissez votre situation pour demander une intervention."
+      />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {siteConfig.problemes.map((probleme) => {
           const Icon = ICONS[probleme.id] ?? Wrench;

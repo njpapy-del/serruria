@@ -5,7 +5,7 @@ import { Wrench } from "lucide-react";
 export function ServicesSection() {
   return (
     <Section id="services">
-      <SectionHeading title="Nos services de serrurerie" />
+      <SectionHeading title="Nos prestations de serrurerie" />
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {siteConfig.services.map((service) => (
           <div key={service.id} className="rounded-2xl border border-slate-200 p-6">

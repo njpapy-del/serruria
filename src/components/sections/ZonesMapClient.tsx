@@ -2,8 +2,8 @@
 
 import dynamic from "next/dynamic";
 
-const TeamMapInner = dynamic(
-  () => import("@/components/sections/TeamMapInner").then((m) => m.TeamMapInner),
+const ZonesMapInner = dynamic(
+  () => import("@/components/sections/ZonesMapInner").then((m) => m.ZonesMapInner),
   {
     ssr: false,
     loading: () => (
@@ -14,6 +14,6 @@ const TeamMapInner = dynamic(
   }
 );
 
-export function TeamMapClient() {
-  return <TeamMapInner />;
+export function ZonesMapClient() {
+  return <ZonesMapInner />;
 }

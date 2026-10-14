@@ -68,6 +68,8 @@
 html {
   background: var(--background);
   scroll-behavior: smooth;
+  /* Les ancres (#lead-form, #zones…) ne passent pas sous l'en-tête collant. */
+  scroll-padding-top: 5.5rem;
 }
 
 body {

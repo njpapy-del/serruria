@@ -6,6 +6,8 @@ import { Loader2 } from "lucide-react";
 import { siteConfig } from "@/data/site-config";
 import { Section, SectionHeading } from "@/components/ui/Section";
 import { pushEvent } from "@/lib/tracking";
+import { PhoneCTA } from "@/components/ui/PhoneCTA";
+import { WhatsAppCTA } from "@/components/ui/WhatsAppCTA";
 import { LIMITS, PROBLEME_OPTIONS, validateLead, type LeadErrors } from "@/lib/leadValidation";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -99,6 +101,23 @@ export function LeadForm() {
           description="Remplissez ce formulaire court : nous vous rappelons pour faire le point sur votre situation."
           tone="dark"
         />
+
+        {/* Coordonnées directes : pour une urgence, l'appel reste le plus rapide. */}
+        <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-5 text-center">
+          <p className="text-sm font-semibold text-slate-300">Urgence ? Contactez-nous directement :</p>
+          <div className="mt-3 flex flex-col justify-center gap-3 sm:flex-row">
+            <PhoneCTA location="lead_form_section" size="md" />
+            <WhatsAppCTA location="lead_form_section" size="md" />
+          </div>
+          {siteConfig.contact.email ? (
+            <p className="mt-3 text-sm text-slate-400">
+              ou par e-mail :{" "}
+              <a href={`mailto:${siteConfig.contact.email}`} className="text-slate-200 underline hover:text-amber-400">
+                {siteConfig.contact.email}
+              </a>
+            </p>
+          ) : null}
+        </div>
 
         {status === "success" ? (
           <div role="status" className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-6 text-center">

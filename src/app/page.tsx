@@ -1,6 +1,5 @@
 import { Hero } from "@/components/sections/Hero";
 import { PartnersMarquee } from "@/components/sections/PartnersMarquee";
-import { TeamMapSection } from "@/components/sections/TeamMapSection";
 import { ProblemGrid } from "@/components/sections/ProblemGrid";
 import { UrgencySection } from "@/components/sections/UrgencySection";
 import { PricingSection } from "@/components/sections/PricingSection";
@@ -13,19 +12,20 @@ import { FAQSection } from "@/components/sections/FAQSection";
 import { LeadForm } from "@/components/sections/LeadForm";
 
 export default function HomePage() {
+  // Ordre pensé pour la conversion : urgences → prestations → tarifs →
+  // zone → démarche → réassurance → FAQ → formulaire et coordonnées.
   return (
     <>
       <Hero />
       <PartnersMarquee />
-      <TeamMapSection />
       <ProblemGrid />
-      <UrgencySection />
-      <PricingSection />
-      <HowItWorks />
       <ServicesSection />
+      <PricingSection />
+      <UrgencySection />
+      <ZonesSection />
+      <HowItWorks />
       <TrustSection />
       <ReviewsSection />
-      <ZonesSection />
       <FAQSection />
       <LeadForm />
     </>

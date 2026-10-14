@@ -19,7 +19,7 @@ export function FAQSection() {
   };
 
   return (
-    <Section id="faq" className="bg-slate-50">
+    <Section id="faq">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
