@@ -49,16 +49,36 @@ export function localBusinessJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "Locksmith",
-    name: legal.companyName || brand.name,
+    name: brand.name,
+    legalName: legal.companyName || undefined,
     url: SITE_URL,
-    telephone: contact.phoneDisplay,
+    telephone: toE164(contact.phoneHref),
     email: contact.email || undefined,
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: legal.address,
-    },
+    address: postalAddress(legal.address),
     ...(siteConfig.villes.length > 0
-      ? { areaServed: siteConfig.villes.map((v) => v.nom) }
+      ? {
+          areaServed: siteConfig.villes.map((v) => ({
+            "@type": "AdministrativeArea",
+            name: v.nom,
+          })),
+        }
       : {}),
   };
+}
+
+/** "tel:0185500270" -> "+33185500270". */
+function toE164(telHref: string): string {
+  const digits = telHref.replace(/\D/g, "");
+  return digits.startsWith("0") ? `+33${digits.slice(1)}` : `+${digits}`;
+}
+
+/**
+ * Découpe "12 Rue X, 93300 Aubervilliers, France" en adresse structurée.
+ * Repli sur l'adresse brute si le format n'est pas reconnu.
+ */
+function postalAddress(raw: string) {
+  const match = raw.match(/^(.+?),\s*(\d{5})\s+([^,]+?)(?:,\s*France)?$/i);
+  if (!match) return { "@type": "PostalAddress", streetAddress: raw, addressCountry: "FR" };
+  const [, streetAddress, postalCode, addressLocality] = match;
+  return { "@type": "PostalAddress", streetAddress, postalCode, addressLocality, addressCountry: "FR" };
 }

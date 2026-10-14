@@ -29,7 +29,7 @@ export async function generateMetadata({
   const lieu = ville.lieu ?? `à ${ville.nom}`;
 
   return buildMetadata({
-    title: `Serrurier ${ville.nom} — ${siteConfig.brand.name}`,
+    title: `Serrurier ${lieu} — ${siteConfig.brand.name}`,
     description: `Serrurier d'urgence ${lieu} (${ville.departement}). Ouverture de porte, clé cassée, serrure bloquée. Devis gratuit, tarif confirmé avant intervention.`,
     path: `/serrurier/${ville.slug}`,
   });

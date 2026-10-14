@@ -8,7 +8,8 @@ import { siteConfig } from "@/data/site-config";
 
 export const metadata: Metadata = {
   ...buildMetadata({
-    title: `${siteConfig.brand.name} — ${siteConfig.brand.positioning}`,
+    title: `Serrurier en urgence en Île-de-France — ${siteConfig.brand.name}`,
+    description: `Porte claquée, porte bloquée ou serrure endommagée à Paris et en Île-de-France ? Appelez ${siteConfig.brand.name} au ${siteConfig.contact.phoneDisplay} ou demandez une intervention en ligne.`,
   }),
   metadataBase: new URL(siteConfig.siteUrl),
 };
