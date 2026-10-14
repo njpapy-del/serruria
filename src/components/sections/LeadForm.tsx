@@ -1,14 +1,34 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { siteConfig } from "@/data/site-config";
 import { Section, SectionHeading } from "@/components/ui/Section";
 import { pushEvent } from "@/lib/tracking";
+import { LIMITS, PROBLEME_OPTIONS, validateLead, type LeadErrors } from "@/lib/leadValidation";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
+const INPUT_CLASS =
+  "w-full rounded-xl border bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none";
+
+function inputClass(hasError: boolean) {
+  return `${INPUT_CLASS} ${hasError ? "border-red-400" : "border-white/15"}`;
+}
+
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} className="mt-1 text-sm text-red-300">
+      {message}
+    </p>
+  );
+}
+
 export function LeadForm() {
   const [status, setStatus] = useState<Status>("idle");
+  const [errors, setErrors] = useState<LeadErrors>({});
   const startedAtRef = useRef<number>(0);
   const hasStartedRef = useRef(false);
   // Garde de ré-entrance : vérifiée/activée de façon synchrone, avant tout
@@ -26,49 +46,84 @@ export function LeadForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isSubmittingRef.current) return;
-    isSubmittingRef.current = true;
-    setStatus("submitting");
 
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form).entries());
 
+    const { errors: clientErrors } = validateLead(data);
+    setErrors(clientErrors);
+    if (Object.keys(clientErrors).length > 0) {
+      const firstInvalid = form.querySelector<HTMLElement>(`[name="${Object.keys(clientErrors)[0]}"]`);
+      firstInvalid?.focus();
+      return;
+    }
+
+    isSubmittingRef.current = true;
+    setStatus("submitting");
+
+    // Seuls des codes techniques partent dans le dataLayer, jamais les
+    // valeurs saisies (aucune donnée personnelle vers GA4 / Google Ads).
+    let reason = "network";
     try {
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, startedAt: startedAtRef.current }),
       });
+      const json = await res.json().catch(() => ({}));
 
-      if (!res.ok) throw new Error("submit_failed");
+      if (!res.ok || !json.ok) {
+        reason = typeof json.error === "string" ? json.error : `http_${res.status}`;
+        if (json.fields) setErrors(json.fields);
+        throw new Error(reason);
+      }
 
       setStatus("success");
       pushEvent("lead_form_submit");
       form.reset();
     } catch {
       setStatus("error");
+      pushEvent("lead_form_error", { reason });
     } finally {
       isSubmittingRef.current = false;
     }
   }
 
+  const submitting = status === "submitting";
+
   return (
     <Section id="lead-form" className="bg-navy-950 text-white">
       <div className="mx-auto max-w-xl">
         <SectionHeading
-          title="Demander un rappel"
-          description="Un formulaire court : nous vous recontactons rapidement."
+          title="Demander une intervention"
+          description="Remplissez ce formulaire court : nous vous rappelons pour faire le point sur votre situation."
           tone="dark"
         />
 
         {status === "success" ? (
-          <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-6 text-center">
-            <p className="font-bold text-amber-300">Votre demande a été envoyée.</p>
+          <div role="status" className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-6 text-center">
+            <p className="font-bold text-amber-300">Votre demande a bien été reçue.</p>
             <p className="mt-1 text-sm text-slate-300">
-              Nous vous recontactons dès que possible. Pour une urgence, appelez-nous directement.
+              Nous vous rappelons au numéro indiqué. Pour une urgence, vous pouvez aussi nous appeler
+              au{" "}
+              <a
+                href={siteConfig.contact.phoneHref}
+                onClick={() => pushEvent("phone_click", { location: "lead_form_success" })}
+                className="font-bold text-white underline"
+              >
+                {siteConfig.contact.phoneDisplay}
+              </a>
+              .
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} onFocus={handleFirstInteraction} className="space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            onFocus={handleFirstInteraction}
+            noValidate
+            className="space-y-4"
+            aria-busy={submitting}
+          >
             {/* Champ honeypot anti-spam : invisible pour un humain, souvent rempli par les robots. */}
             <div className="hidden" aria-hidden="true">
               <label htmlFor="company">Ne pas remplir</label>
@@ -83,9 +138,14 @@ export function LeadForm() {
                 id="nom"
                 name="nom"
                 type="text"
+                autoComplete="name"
                 required
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                maxLength={LIMITS.nom}
+                aria-invalid={Boolean(errors.nom)}
+                aria-describedby={errors.nom ? "nom-error" : undefined}
+                className={inputClass(Boolean(errors.nom))}
               />
+              <FieldError id="nom-error" message={errors.nom} />
             </div>
 
             <div>
@@ -96,22 +156,34 @@ export function LeadForm() {
                 id="telephone"
                 name="telephone"
                 type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="06 12 34 56 78"
                 required
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                maxLength={LIMITS.telephone}
+                aria-invalid={Boolean(errors.telephone)}
+                aria-describedby={errors.telephone ? "telephone-error" : undefined}
+                className={inputClass(Boolean(errors.telephone))}
               />
+              <FieldError id="telephone-error" message={errors.telephone} />
             </div>
 
             <div>
               <label htmlFor="ville" className="mb-1 block text-sm font-semibold text-slate-200">
-                Ville
+                Ville ou code postal
               </label>
               <input
                 id="ville"
                 name="ville"
                 type="text"
+                autoComplete="address-level2"
                 required
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                maxLength={LIMITS.ville}
+                aria-invalid={Boolean(errors.ville)}
+                aria-describedby={errors.ville ? "ville-error" : undefined}
+                className={inputClass(Boolean(errors.ville))}
               />
+              <FieldError id="ville-error" message={errors.ville} />
             </div>
 
             <div>
@@ -123,44 +195,75 @@ export function LeadForm() {
                 name="probleme"
                 required
                 defaultValue=""
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-amber-400 focus:outline-none"
+                aria-invalid={Boolean(errors.probleme)}
+                aria-describedby={errors.probleme ? "probleme-error" : undefined}
+                className={inputClass(Boolean(errors.probleme))}
               >
                 <option value="" disabled>
                   Sélectionnez votre situation
                 </option>
-                {siteConfig.problemes.map((probleme) => (
-                  <option key={probleme.id} value={probleme.label} className="text-navy-900">
-                    {probleme.label}
+                {PROBLEME_OPTIONS.map((label) => (
+                  <option key={label} value={label} className="text-navy-900">
+                    {label}
                   </option>
                 ))}
               </select>
+              <FieldError id="probleme-error" message={errors.probleme} />
             </div>
 
             <div>
               <label htmlFor="message" className="mb-1 block text-sm font-semibold text-slate-200">
-                Message (facultatif)
+                Description (facultatif)
               </label>
               <textarea
                 id="message"
                 name="message"
                 rows={3}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                maxLength={LIMITS.message}
+                aria-invalid={Boolean(errors.message)}
+                aria-describedby={errors.message ? "message-error" : undefined}
+                className={inputClass(Boolean(errors.message))}
               />
+              <FieldError id="message-error" message={errors.message} />
             </div>
 
             {status === "error" && (
-              <p className="text-sm text-red-400">
-                Une erreur est survenue. Merci de réessayer ou de nous appeler directement.
+              <p role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-200">
+                Votre demande n&apos;a pas pu être envoyée. Vérifiez les champs ci-dessus ou appelez-nous
+                directement au{" "}
+                <a
+                  href={siteConfig.contact.phoneHref}
+                  onClick={() => pushEvent("phone_click", { location: "lead_form_error" })}
+                  className="font-bold text-white underline"
+                >
+                  {siteConfig.contact.phoneDisplay}
+                </a>
+                .
               </p>
             )}
 
             <button
               type="submit"
-              disabled={status === "submitting"}
-              className="w-full rounded-full bg-amber-500 px-6 py-4 text-lg font-bold text-navy-950 transition-colors hover:bg-amber-400 disabled:opacity-60"
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-amber-500 px-6 py-4 text-lg font-bold text-navy-950 transition-colors hover:bg-amber-400 disabled:opacity-60"
             >
-              {status === "submitting" ? "Envoi en cours…" : "DEMANDER UN RAPPEL"}
+              {submitting ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                  Envoi en cours…
+                </>
+              ) : (
+                "Demander une intervention"
+              )}
             </button>
+
+            <p className="text-xs text-slate-400">
+              Vos coordonnées servent uniquement à vous recontacter au sujet de cette demande. Voir notre{" "}
+              <Link href="/politique-confidentialite" className="underline hover:text-amber-400">
+                politique de confidentialité
+              </Link>
+              .
+            </p>
           </form>
         )}
       </div>

@@ -2,46 +2,61 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { put } from "@vercel/blob";
 import { siteConfig } from "@/data/site-config";
+import { validateLead } from "@/lib/leadValidation";
 
 // Délai minimum entre l'affichage du formulaire et sa soumission : un envoi
 // plus rapide que ça vient presque toujours d'un robot, pas d'un humain.
 const MIN_FILL_TIME_MS = 1500;
 
-type LeadPayload = {
-  nom?: string;
-  telephone?: string;
-  ville?: string;
-  probleme?: string;
-  message?: string;
-  company?: string; // honeypot
-  startedAt?: number;
-};
+// Limite anti-abus par IP. Mémoire de l'instance serverless uniquement :
+// freine un envoi en rafale, sans prétendre être une protection absolue.
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 10 * 60 * 1000;
+const recentByIp = new Map<string, number[]>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const recent = (recentByIp.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  recent.push(now);
+  recentByIp.set(ip, recent);
+  return recent.length > RATE_LIMIT;
+}
 
 export async function POST(request: Request) {
-  let body: LeadPayload;
+  let body: Record<string, unknown>;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
 
-  const { nom, telephone, ville, probleme, message, company, startedAt } = body;
+  const { company, startedAt } = body;
 
   // Honeypot rempli => robot, on répond succès sans rien envoyer (ne pas donner d'indice).
   if (company) {
     return NextResponse.json({ ok: true });
   }
 
-  if (!nom || !telephone || !ville || !probleme) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+  const { fields, errors } = validateLead(body);
+  if (Object.keys(errors).length > 0) {
+    return NextResponse.json({ error: "invalid_fields", fields: errors }, { status: 400 });
   }
 
   if (typeof startedAt === "number" && Date.now() - startedAt < MIN_FILL_TIME_MS) {
     return NextResponse.json({ error: "too_fast" }, { status: 400 });
   }
 
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
+  const { nom, telephone, ville, probleme, message } = fields;
   const receivedAt = new Date().toISOString();
-  const lead = { nom, telephone, ville, probleme, message: message || "", receivedAt };
+  const lead = { nom, telephone, ville, probleme, message, receivedAt };
 
   // 1) Sauvegarde persistante (Vercel Blob, privé) — priorité : ne jamais perdre
   // un lead même si l'email échoue ou n'est pas configuré. Récupérable ensuite
@@ -86,13 +101,15 @@ export async function POST(request: Request) {
       const { error } = await resend.emails.send({
         from: fromEmail,
         to: toEmails,
-        subject: `Nouvelle demande de rappel — ${siteConfig.brand.name}`,
+        subject: `Demande d'intervention — ${probleme} — ${ville}`,
         text: [
           `Nom : ${nom}`,
           `Téléphone : ${telephone}`,
           `Ville : ${ville}`,
           `Problème : ${probleme}`,
-          `Message : ${message || "—"}`,
+          `Description : ${message || "—"}`,
+          "",
+          `Reçue le ${new Date(receivedAt).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })} via ${siteConfig.siteUrl}`,
         ].join("\n"),
       });
       if (error) throw error;
@@ -103,9 +120,11 @@ export async function POST(request: Request) {
   }
 
   if (!savedToBlob && !emailSent) {
-    // Ni la sauvegarde ni l'email n'ont fonctionné (ou ne sont pas configurés) :
-    // on logge quand même pour ne jamais perdre silencieusement un lead.
-    console.warn("[lead] Aucun stockage configuré — lead reçu uniquement dans les logs:", lead);
+    // Ni la sauvegarde ni l'email n'ont fonctionné : la demande n'est pas
+    // réellement reçue, on ne confirme donc pas au visiteur (il est invité à
+    // appeler). Trace dans les logs pour pouvoir la récupérer malgré tout.
+    console.error("[lead] Demande non enregistrée ni envoyée:", lead);
+    return NextResponse.json({ error: "delivery_failed" }, { status: 502 });
   }
 
   return NextResponse.json({ ok: true, savedToBlob, emailSent });

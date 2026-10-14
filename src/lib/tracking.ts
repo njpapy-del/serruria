@@ -6,6 +6,7 @@ export type TrackingEvent =
   | "phone_click"
   | "lead_form_start"
   | "lead_form_submit"
+  | "lead_form_error"
   | "whatsapp_click"
   | "quote_request";
 

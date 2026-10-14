@@ -15,9 +15,11 @@ export default function PolitiqueConfidentialitePage() {
 
       <h2 className="mt-8 text-xl font-bold text-navy-900">Formulaire de contact</h2>
       <p className="mt-2 text-sm text-navy-700">
-        Les informations transmises via le formulaire de rappel (nom, téléphone, ville, type de
-        problème, message) sont utilisées uniquement pour vous recontacter au sujet de votre
-        demande. Elles ne sont ni revendues ni utilisées à d&apos;autres fins.
+        Les informations transmises via le formulaire de demande d&apos;intervention (nom,
+        téléphone, ville ou code postal, type de problème, description) sont utilisées uniquement
+        pour vous recontacter au sujet de votre demande. Elles ne sont ni revendues ni utilisées à
+        d&apos;autres fins. Pour traiter votre demande, elles sont enregistrées chez notre
+        hébergeur (Vercel) et transmises par e-mail via notre prestataire d&apos;envoi (Resend).
       </p>
 
       <h2 className="mt-8 text-xl font-bold text-navy-900">Cookies et mesure d&apos;audience</h2>
