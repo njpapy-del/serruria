@@ -187,7 +187,7 @@ class SourcesTest(unittest.TestCase):
             rss.parse_feed("<html>pas un flux")
 
     def test_brave_bloque_sans_accord_cle_ni_budget(self):
-        base = dict(CFG["sources"]["brave_search"])
+        base = {**CFG["sources"]["brave_search"], "enabled": False, "approved_by_owner": False, "monthly_budget_usd": 4.5}
         with self.assertRaises(SourceDisabled):
             brave.check_enabled(base, "cle")
         with self.assertRaises(SourceDisabled):
@@ -196,6 +196,7 @@ class SourcesTest(unittest.TestCase):
             brave.check_enabled({**base, "enabled": True, "approved_by_owner": True}, None)
         with self.assertRaises(SourceDisabled):
             brave.check_enabled({**base, "enabled": True, "approved_by_owner": True, "monthly_budget_usd": 0}, "cle")
+        brave.check_enabled({**base, "enabled": True, "approved_by_owner": True}, "cle")  # tout est réuni
 
     def test_brave_refuse_l_appel_qui_depasserait_le_budget(self):
         op = opener_for([FakeRes(body=b'{"web":{"results":[]}}')] * 5)
@@ -333,6 +334,42 @@ class RunTest(unittest.TestCase):
         log = rep.public_log()
         self.assertNotIn("exemple.invalid", log)
         self.assertNotIn("Aubervilliers", log)
+
+
+class BraveComplianceTest(unittest.TestCase):
+    def test_brave_ne_conserve_rien(self):
+        state, mailer = State(Path("/dev/null")), FakeMailer()
+        item = RawItem("brave_search", None, "https://exemple.invalid/b", "t", "A", NOW)
+        for _ in range(2):
+            collected = {"brave_search": SourceResult("brave_search", queries=["q"], items=[item, item])}
+            rep = run_once(mode="assiste", cfg=CFG, state=state, env={}, now=NOW, mailer=mailer, collected=collected, qualify_fn=fake_qualify({"A": result(key="url:b")}))
+            self.assertEqual(rep.duplicates, 1)  # doublon dans le passage seulement
+        self.assertEqual(state.data["seen"], {})
+        self.assertEqual(state.data["notified"], {})
+
+    def test_brave_hors_creneau_ne_fait_aucun_appel(self):
+        from lead_radar_agent.run import collect
+
+        scfg = CFG["sources"]["brave_search"]
+        midi = datetime(2026, 10, 16, 10, 0, tzinfo=timezone.utc)  # 12 h à Paris, hors 07:00-07:59
+        res = collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k"}, midi, {"opener": opener_for([])})
+        self.assertEqual(res.skipped_reason, "hors du créneau quotidien")
+
+    def test_plafond_mensuel_theorique_sous_le_credit_gratuit(self):
+        scfg = CFG["sources"]["brave_search"]
+        self.assertLessEqual(31 * scfg["max_queries_per_day"] * scfg["cost_per_query_usd"], 5.0)
+        self.assertLess(scfg["monthly_budget_usd"], 5.0)
+        self.assertFalse(scfg["persist_results"])
+
+    def test_extraits_brave_nettoyes(self):
+        body = json.dumps({"web": {"results": [{"url": "https://x.test", "title": "L&#x27;astuce <strong>porte</strong>", "description": "<strong>Clé</strong> cassée"}]}}).encode()
+        res = brave.search(["q"], api_key="k", budget_left_usd=1, cost_per_query=0.005, opener=opener_for([FakeRes(body=body)]))
+        self.assertEqual((res.items[0].title, res.items[0].content), ("L'astuce porte", "Clé cassée"))
+
+    def test_requetes_orientees_demandes(self):
+        qs = Q.demand_queries(["93"], ["Aubervilliers"])
+        self.assertIn('"je cherche un serrurier" Seine-Saint-Denis', qs)
+        self.assertTrue(all('"' in q for q in qs))
 
 
 class EndToEndQualifyTest(unittest.TestCase):

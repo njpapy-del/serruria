@@ -139,6 +139,16 @@ const PRO_AD_PHRASES = [
   "tarifs",
   "agree assurances",
   "sans engagement",
+  "serrurier professionnel",
+  "je travaille sur",
+  "je travail sur",
+  "dernier avis",
+  "nos prestations",
+  "ses prestations",
+  "extraction tarif",
+  "tarif extraction",
+  "intervention rapide",
+  "depannage d urgence 24",
 ];
 
 const ARTICLE_PHRASES = [
@@ -156,11 +166,49 @@ const ARTICLE_PHRASES = [
   "conseils pour",
   "prix moyen",
   "combien coute",
+  "astuce",
+  "astuces",
+  "les bons gestes",
+  "bons gestes",
+  "les bons reflexes",
+  "que faire",
+  "comment ouvrir",
+  "comment enlever",
+  "comment rentrer",
+  "comment gerer",
+  "techniques",
+  "ce geste",
+  "conseils",
+  "grille de prix",
+  "prise en charge",
+  "qui doit payer",
+  "avocat",
+  "blog",
 ];
 
 const DIRECTORY_PHRASES = ["annuaire", "top 10", "meilleurs serruriers", "classement", "liste des serruriers", "comparatif"];
 
-const DIRECTORY_HOSTS = ["pagesjaunes.fr", "yelp.", "travaux.com", "habitatpresto.com", "starofservice", "mappy.", "118712", "societe.com"];
+// Annuaires et plateformes de mise en relation : listes de professionnels, pas
+// des demandes de clients (constaté en réel sur Brave le 2026-10-16).
+const DIRECTORY_HOSTS = [
+  "pagesjaunes.fr",
+  "yelp.",
+  "travaux.com",
+  "habitatpresto.com",
+  "starofservice",
+  "mappy.",
+  "118712",
+  "118000",
+  "societe.com",
+  "allovoisins.com",
+  "ou-serrurier.fr",
+  "fairfair.com",
+  "lesbonsartisans.fr",
+  "allo-reparateurs.fr",
+  "depanneo.com",
+  "mesdepanneurs.fr",
+  "metallerie-serrurerie.net",
+];
 
 function classifyKind(text: string, url: string | null): { kind: ContentKind; reasons: string[] } {
   const demand = containsAny(text, DEMAND_PHRASES);

@@ -70,6 +70,12 @@ def _in_hours(cfg: dict, local_now: datetime) -> bool:
     return start <= t <= end if start <= end else (t >= start or t <= end)
 
 
+def _in_window(window: dict | None, local_now: datetime) -> bool:
+    if not window:
+        return True
+    return _in_hours({"surveillance_hours": window}, local_now)
+
+
 def _interval_ok(state: State, source_id: str, now: datetime, minutes: int) -> bool:
     last = state.source(source_id).get("last_run")
     return not last or (now - datetime.fromisoformat(last)).total_seconds() >= minutes * 60 - 30
@@ -96,14 +102,17 @@ def collect(source_id: str, scfg: dict, cfg: dict, state: State, env: dict, now:
 
     if source_id == "brave_search":
         brave.check_enabled(scfg, env.get("BRAVE_SEARCH_API_KEY"))
+        # Créneau fixe : borne la dépense même si l'état (cache) est perdu.
+        if not _in_window(scfg.get("run_window"), now.astimezone(ZoneInfo(cfg.get("timezone", "Europe/Paris")))):
+            return SourceResult(source_id, skipped_reason="hors du créneau quotidien")
         month = now.strftime("%Y-%m")
         budget_left = float(scfg["monthly_budget_usd"]) - state.spend(month)
         left = int(scfg.get("max_queries_per_day", 0)) - state.queries_today(source_id, today)
-        all_q = Q.localized_queries(cfg.get("departements", []), cfg.get("communes_prioritaires", []))
+        all_q = Q.demand_queries(cfg.get("departements", []), cfg.get("communes_prioritaires", []))
         batch, cursor = Q.next_batch(all_q, state.data["query_cursor"].get(source_id, 0), min(int(scfg.get("max_queries_per_run", 0)), left))
         if not batch:
             return SourceResult(source_id, skipped_reason="quota quotidien de requêtes atteint")
-        res = brave.search(batch, api_key=env["BRAVE_SEARCH_API_KEY"], budget_left_usd=budget_left, cost_per_query=float(scfg["cost_per_query_usd"]), **http_kwargs)
+        res = brave.search(batch, api_key=env["BRAVE_SEARCH_API_KEY"], budget_left_usd=budget_left, cost_per_query=float(scfg["cost_per_query_usd"]), freshness=scfg.get("freshness", "pw"), **http_kwargs)
         state.add_spend(month, res.paid_requests * float(scfg["cost_per_query_usd"]))
         state.data["query_cursor"][source_id] = cursor
         state.add_queries(source_id, today, len(res.queries))
@@ -190,22 +199,34 @@ def run_once(
             report.notification_errors.append(str(exc)[:200])
             continue
 
+        # Sources dont les conditions interdisent la conservation (Brave) :
+        # déduplication limitée au passage en cours, rien n'est mémorisé.
+        persist = cfg.get("sources", {}).get(sid, {}).get("persist_results", True)
+        seen_now: set[str] = set()
         for item, r in zip(items, qualified):
             report.analysed += 1
             daily["items"] += 1
-            if state.find_seen(r["dedupeKeys"]):
+            if (persist and state.find_seen(r["dedupeKeys"])) or seen_now.intersection(r["dedupeKeys"]):
                 report.duplicates += 1
                 continue
-            state.remember(r["dedupeKeys"], now)
+            seen_now.update(r["dedupeKeys"])
+            if persist:
+                state.remember(r["dedupeKeys"], now)
             report.by_class[r["classe"]] = report.by_class.get(r["classe"], 0) + 1
             if r["classe"] in LEAD_CLASSES_DEFAULT:
                 daily["demandes"] += 1
             if r["classe"] in cfg.get("notify_classes", LEAD_CLASSES_DEFAULT) and r["score"] >= int(cfg.get("notify_min_score", 0)):
                 to_notify.append((r, item, sid))
+    persist_of = {sid: cfg.get("sources", {}).get(sid, {}).get("persist_results", True) for sid in results}
 
     # 3. Notifications (urgentes : une par prospect ; autres : regroupées)
     detected_at = local_now.strftime("%Y-%m-%d %H:%M (%Z)")
-    pending = [(r, it, sid) for r, it, sid in to_notify if not state.was_notified(r["dedupeKeys"][0])]
+    pending = [(r, it, sid) for r, it, sid in to_notify if not (persist_of.get(sid, True) and state.was_notified(r["dedupeKeys"][0]))]
+
+    def mark(r: dict, sid: str) -> None:
+        if persist_of.get(sid, True):
+            state.mark_notified(r["dedupeKeys"][0], now)
+
     if pending and mailer is None and mode != "test":
         report.notification_errors.append("notifications non configurées (RESEND_API_KEY / LEAD_RADAR_*)")
     if mailer is not None:
@@ -214,7 +235,7 @@ def run_once(
         for r, it, sid in urgent:
             try:
                 mailer.send(lead_subject(r), lead_body(r, it, source_nom=SOURCE_NAMES.get(sid, sid), detected_at=detected_at, with_response=mode != "surveillance"), f"lead-{r['dedupeKeys'][0]}")
-                state.mark_notified(r["dedupeKeys"][0], now)
+                mark(r, sid)
                 report.notifications_sent += 1
             except NotifyError as exc:
                 report.notification_errors.append(str(exc))
@@ -229,8 +250,8 @@ def run_once(
             key = "batch-" + "-".join(r["dedupeKeys"][0][-12:] for r, _, _ in chunk)
             try:
                 mailer.send(subject, body, key)
-                for r, _, _ in chunk:
-                    state.mark_notified(r["dedupeKeys"][0], now)
+                for r, _, csid in chunk:
+                    mark(r, csid)
                 report.notifications_sent += len(chunk)
             except NotifyError as exc:
                 report.notification_errors.append(str(exc))

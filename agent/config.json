@@ -1,11 +1,41 @@
 {
   "_doc": "Configuration du Lead Radar (aucun secret ici : les clés sont dans les variables d'environnement). Voir agent/README.md.",
   "timezone": "Europe/Paris",
-  "surveillance_hours": { "start": "00:00", "end": "23:59" },
+  "surveillance_hours": {
+    "start": "00:00",
+    "end": "23:59"
+  },
   "daily_summary_hour": 20,
-  "departements": ["75", "77", "78", "91", "92", "93", "94", "95"],
-  "communes_prioritaires": ["Paris", "Aubervilliers", "Saint-Denis", "Pantin", "Montreuil", "Bobigny", "Créteil", "Vincennes", "Boulogne-Billancourt", "Nanterre", "Argenteuil", "Versailles", "Évry-Courcouronnes", "Meaux"],
-  "notify_classes": ["DEMANDE_CONFIRMEE", "DEMANDE_PROBABLE"],
+  "departements": [
+    "75",
+    "77",
+    "78",
+    "91",
+    "92",
+    "93",
+    "94",
+    "95"
+  ],
+  "communes_prioritaires": [
+    "Paris",
+    "Aubervilliers",
+    "Saint-Denis",
+    "Pantin",
+    "Montreuil",
+    "Bobigny",
+    "Créteil",
+    "Vincennes",
+    "Boulogne-Billancourt",
+    "Nanterre",
+    "Argenteuil",
+    "Versailles",
+    "Évry-Courcouronnes",
+    "Meaux"
+  ],
+  "notify_classes": [
+    "DEMANDE_CONFIRMEE",
+    "DEMANDE_PROBABLE"
+  ],
   "notify_min_score": 45,
   "max_items_per_email_batch": 10,
   "retention_days": 60,
@@ -24,14 +54,21 @@
       "fetch_pages": false
     },
     "brave_search": {
-      "enabled": false,
-      "approved_by_owner": false,
-      "max_queries_per_run": 3,
-      "max_queries_per_day": 30,
-      "monthly_budget_usd": 0,
+      "enabled": true,
+      "approved_by_owner": true,
+      "_doc": "Forfait gratuit Brave : 5 $ de crédit/mois, AUCUN plafond côté Brave (vérifié via x-ratelimit-policy). Plafond garanti par l'agent : 1 créneau/jour × 10 requêtes = 310 requêtes/mois max ≈ 1,55 $. persist_results=false : conditions Brave (stockage transitoire uniquement).",
+      "persist_results": false,
+      "run_window": {
+        "start": "07:00",
+        "end": "07:59"
+      },
+      "max_queries_per_run": 10,
+      "max_queries_per_day": 10,
+      "monthly_budget_usd": 4.5,
       "cost_per_query_usd": 0.005,
-      "min_interval_minutes": 60,
-      "fetch_pages": true
+      "min_interval_minutes": 1380,
+      "freshness": "pw",
+      "fetch_pages": false
     }
   }
 }

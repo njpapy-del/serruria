@@ -312,3 +312,19 @@ describe("formulations courantes", () => {
     expect(detectServices(normalize(text))[0].id).toBe(id);
   });
 });
+
+describe("cas réels observés sur Brave (2026-10-16), reformulés", () => {
+  const brave = getSource("brave_search")!;
+  it.each([
+    ["Serrurerie à Vitry-sur-Seine (94) - AlloVoisins", "Je travaille sur la région parisienne · Dernier avis : 5/5", "https://www.allovoisins.com/v/serrurerie/vitry-sur-seine", "ANNUAIRE"],
+    ["Porte claquée avec les clés à l'intérieur — quelles techniques marchent vraiment ?", "Astuce : si la porte a un joint", "https://blog.exemple.fr/porte", "CONTENU_INFORMATIF"],
+    ["Clé cassée dans la serrure : les bons gestes", "Un coup de lubrifiant sec", "https://depannage.exemple.fr/cle", "CONTENU_INFORMATIF"],
+    ["Porte claquée et facture à 1 400 euros : qui doit payer le serrurier ?", "Maître X, avocat", "https://avocat.exemple.fr/article", "CONTENU_INFORMATIF"],
+  ])("%s → %s", (title, content, url, classe) => {
+    expect(qualify(item(title, content, 24 * 10, url), brave, config, NOW).classe).toBe(classe);
+  });
+
+  it("une vraie demande reste une demande", () => {
+    expect(qualify(item("Je cherche un serrurier à Vitry-sur-Seine", "ma clé est cassée dans la serrure, urgent"), brave, config, NOW).classe).toBe("DEMANDE_CONFIRMEE");
+  });
+});

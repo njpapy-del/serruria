@@ -62,6 +62,25 @@ def localized_queries(departements: list[str], communes: list[str]) -> list[str]
     return queries
 
 
+# Formulations « forum » : une personne qui demande de l'aide, pas une page de
+# professionnel. Test réel du 2026-10-16 : les requêtes génériques
+# (« serrurier Aubervilliers ») ne renvoient que concurrents et annuaires.
+DEMANDES_FORUM = [
+    '"je cherche un serrurier"',
+    '"besoin d\'un serrurier"',
+    '"quelqu\'un connait un serrurier"',
+    '"vous connaissez un serrurier"',
+    '"porte claquée" aide',
+    '"clé cassée dans la serrure" aide',
+]
+
+
+def demand_queries(departements: list[str], communes: list[str]) -> list[str]:
+    """Requêtes moteur de recherche orientées demandes de particuliers."""
+    lieux = [DEPARTEMENTS[c] for c in departements if c in DEPARTEMENTS] + communes
+    return [f"{d} {lieu}" for lieu, d in product(lieux, DEMANDES_FORUM)]
+
+
 def next_batch(all_queries: list[str], cursor: int, size: int) -> tuple[list[str], int]:
     """Renvoie `size` requêtes à partir du curseur (rotation) et le nouveau curseur."""
     if not all_queries or size <= 0:
