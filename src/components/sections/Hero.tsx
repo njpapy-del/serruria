@@ -2,6 +2,7 @@ import { siteConfig } from "@/data/site-config";
 import { PhoneCTA } from "@/components/ui/PhoneCTA";
 import { QuoteCTA } from "@/components/ui/QuoteCTA";
 import { WhatsAppCTA } from "@/components/ui/WhatsAppCTA";
+import { HeroSlogans } from "@/components/sections/HeroSlogans";
 import { CheckCircle2 } from "lucide-react";
 
 export function Hero() {
@@ -32,11 +33,26 @@ export function Hero() {
             {siteConfig.hero.badge}
           </span>
 
-          <h1 className="mt-4 max-w-xl text-[2rem] font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-            {siteConfig.hero.title}
+          {/* Accroche visuelle principale ; le H1 reste la requête recherchée (SEO). */}
+          <p className="mt-4 max-w-2xl text-[2.15rem] font-black uppercase leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+            {siteConfig.hero.accroche}
+          </p>
+
+          <h1 className="mt-3 max-w-xl text-xl font-bold leading-tight text-amber-300 sm:text-2xl">
+            {/* Les mots composés (« Île-de-France ») ne sont jamais coupés au trait d'union. */}
+            {siteConfig.hero.title.split(" ").map((word, i) => (
+              <span key={i} className={word.includes("-") ? "whitespace-nowrap" : undefined}>
+                {i > 0 ? " " : ""}
+                {word}
+              </span>
+            ))}
           </h1>
 
-          <p className="mt-3 max-w-xl text-lg text-slate-200">{siteConfig.hero.subtitle}</p>
+          <div className="mt-4 max-w-xl">
+            <HeroSlogans slogans={siteConfig.hero.slogans} />
+          </div>
+
+          <p className="mt-3 max-w-xl text-base text-slate-200 sm:text-lg">{siteConfig.hero.subtitle}</p>
 
           <p className="mt-3 max-w-xl text-sm font-semibold text-amber-300">{prestations.join(" · ")}</p>
 

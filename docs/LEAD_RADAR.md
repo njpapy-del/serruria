@@ -4,23 +4,21 @@ Module de détection et de qualification des demandes de serrurerie en
 Île-de-France pour Serrurerie Louis & Fils. Ce document décrit **ce qui
 fonctionne réellement** et ce qui reste à brancher.
 
-## État au 2026-10-16
+## État au 2026-10-16 (mis à jour après le lot agent)
 
 | Brique | État | Testé |
 |---|---|---|
-| Qualification (besoin, urgence, type de contenu, score /100 expliqué, catégorie) | ✅ Code prêt | ✅ Vitest |
-| Localisation (1 266 communes IDF, codes postaux, arrondissements, départements, distance) | ✅ Code prêt | ✅ Vitest |
-| Déduplication (identifiant source, URL normalisée, empreinte du texte) | ✅ Code prêt | ✅ Vitest |
-| Réponses proposées (numéro 01 85 50 02 70, sans prix ni délai promis) | ✅ Code prêt | ✅ Vitest |
-| Décision surveillance / assisté / automatique | ✅ Code prêt | ✅ Vitest |
-| Connecteur « Alertes web (RSS) » | ✅ Code prêt | ✅ Sur flux d'exemple. **Pas encore sur un vrai flux** (alertes à créer). |
-| Stockage des opportunités | ❌ À faire | Base PostgreSQL non créée |
-| Tâches planifiées | ❌ À faire | Aucune tâche déployée |
-| Alertes e-mail du radar | ❌ À faire | |
-| Interface Lead Radar dans /admin | ❌ À faire | |
+| Qualification, classes commerciales, localisation, déduplication, réponses | ✅ | ✅ 51 tests Vitest |
+| Agent Python `agent/` (requêtes, sources, alertes, état, rapports) | ✅ | ✅ 30 tests unittest |
+| Source **Bluesky** (API publique officielle) | ✅ Active | ✅ Réel : 16 requêtes, 50 publications sur 30 jours, **0 demande de serrurier en IDF** |
+| Source Alertes RSS | ⏸ Aucun flux fourni | Flux d'exemple uniquement |
+| Source Brave Search | 🔒 Désactivée (accord, clé, budget requis) | Mock uniquement |
+| Alertes e-mail Resend | ✅ | ✅ Réel : 2 e-mails [TEST] remis (« delivered ») |
+| Planification GitHub Actions (toutes les 30 min) | ✅ | ✅ Passage réel déclenché à la main réussi |
+| Base de données / onglet Lead Radar dans /admin | ❌ À faire | — |
 
-**Le radar ne tourne pas encore en production** : il n'y a ni stockage ni
-planification déployés. Rien n'est publié nulle part.
+Le radar n'enregistre aucun prospect : il alerte par e-mail. Rien n'est publié
+nulle part. Détails d'exploitation : `agent/README.md`.
 
 ## Architecture
 

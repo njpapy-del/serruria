@@ -11,7 +11,14 @@
   "hero": {
     "badge": "DISPONIBLE 7J/7",
     "title": "Serrurier en urgence en Île-de-France",
-    "subtitle": "Porte claquée, porte bloquée ou serrure endommagée ? Contactez Serrurerie Louis & Fils pour demander une intervention."
+    "subtitle": "Porte claquée, porte bloquée ou serrure endommagée ? Contactez Serrurerie Louis & Fils pour demander une intervention.",
+    "accroche": "Une porte claquée ne devrait jamais coûter un salaire",
+    "slogans": [
+      "Porte fermée, prix maîtrisé. Voilà un dépannage bien réalisé",
+      "Vous cherchez un serrurier, pas une facture à quatre chiffres",
+      "Votre urgence, notre métier. Votre confiance, notre priorité",
+      "Le bon serrurier, c'est celui qui vous dépanne sans vous plumer"
+    ]
   },
   "promo": {
     "text": "Ouverture de porte claquée : 49 € prix fixe, sans surprise",

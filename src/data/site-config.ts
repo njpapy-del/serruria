@@ -112,6 +112,8 @@ export const siteConfig = {
     badge: content.hero.badge,
     title: content.hero.title,
     subtitle: content.hero.subtitle,
+    accroche: content.hero.accroche,
+    slogans: content.hero.slogans,
     videoSrc: "/videos/hero.mp4",
     posterSrc: "/images/hero-poster.jpg",
   },
