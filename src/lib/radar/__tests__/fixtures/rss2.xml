@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Flux de test</title>
+    <item>
+      <title><![CDATA[Clé cassée dans la serrure - 93200]]></title>
+      <link>https://communaute.exemple.fr/demande/42</link>
+      <guid>demande-42</guid>
+      <pubDate>Fri, 16 Oct 2026 13:00:00 GMT</pubDate>
+      <description><![CDATA[<p>J'ai besoin d'un serrurier, ma clé s'est cassée dans la serrure.</p>]]></description>
+    </item>
+  </channel>
+</rss>

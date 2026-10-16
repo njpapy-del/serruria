@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:idx="urn:atom-extension:indexing">
+  <id>tag:google.com,2005:reference:/alerts/feeds/00000000000000000000/0000000000000000000</id>
+  <title>Alerte Google - porte claquée</title>
+  <link href="https://www.google.com/alerts/feeds/00000000000000000000/0000000000000000000" rel="self"/>
+  <updated>2026-10-16T14:00:00Z</updated>
+  <entry>
+    <id>tag:google.com,2013:googlealerts/feed:1111111111111111111</id>
+    <title type="html">Je cherche un &lt;b&gt;serrurier&lt;/b&gt; en urgence à Créteil</title>
+    <link href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://forum.exemple.fr/t/porte-claquee-creteil-123%3Futm_source%3Dalert&amp;ct=ga&amp;cd=CAIyABC&amp;usg=AOvVaw0" />
+    <published>2026-10-16T13:30:00Z</published>
+    <updated>2026-10-16T13:30:00Z</updated>
+    <content type="html">Bonjour, ma &lt;b&gt;porte&lt;/b&gt; est &lt;b&gt;claquée&lt;/b&gt; et je suis bloqué dehors à Créteil, quelqu'un connaît un serrurier fiable ?</content>
+    <author><name/></author>
+  </entry>
+  <entry>
+    <id>tag:google.com,2013:googlealerts/feed:2222222222222222222</id>
+    <title type="html">Serrurier Paris 24h/24 - Devis gratuit</title>
+    <link href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://concurrent.exemple.fr/&amp;ct=ga" />
+    <published>2026-10-16T12:00:00Z</published>
+    <updated>2026-10-16T12:00:00Z</updated>
+    <content type="html">Nos serruriers interviennent 24h/24 et 7j/7. Devis gratuit, appelez-nous.</content>
+    <author><name/></author>
+  </entry>
+</feed>
