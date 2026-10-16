@@ -370,6 +370,12 @@ describe("plomberie (catalogue distinct, non proposée comme prospect)", () => {
     expect(q.classe).toBe("DEMANDE_CONFIRMEE");
   });
 
+  it("une anecdote de plomberie n'est pas étiquetée comme besoin hors prestation", () => {
+    const q = qualify(item("Devinez qui écope sa cuisine suite à un dégât des eaux", ""), bsky, config, NOW);
+    expect(q.metier).toBe("plomberie");
+    expect(q.classe).toBe("A_VERIFIER");
+  });
+
   it("un article de conseil en plomberie reste informatif", () => {
     expect(qualify(item("WC bouché : les bons gestes", "Astuce : bicarbonate et vinaigre"), bsky, config, NOW).classe).toBe("CONTENU_INFORMATIF");
   });

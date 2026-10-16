@@ -368,7 +368,9 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
   if (metier === "plomberie") {
     const familleProposee = plumbing.some((p) => (config.plomberie.famillesProposees as string[]).includes(p.famille));
     prestationProposee = config.plomberie.prospectsActifs && familleProposee;
-    if (!prestationProposee && (classe === "DEMANDE_CONFIRMEE" || classe === "DEMANDE_PROBABLE" || classe === "A_VERIFIER")) {
+    // Seule une vraie demande (confirmée ou probable) devient HORS_PRESTATION :
+    // une anecdote ou un message ambigu reste A_VERIFIER (constat réel du 2026-10-17).
+    if (!prestationProposee && (classe === "DEMANDE_CONFIRMEE" || classe === "DEMANDE_PROBABLE")) {
       classe = "HORS_PRESTATION";
       categorieFinale = "HORS_PRESTATION";
       raisonFinale = config.plomberie.prospectsActifs
