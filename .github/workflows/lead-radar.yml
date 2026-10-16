@@ -1,0 +1,68 @@
+# Lead Radar — exécution planifiée sur les serveurs GitHub (ordinateur éteint OK).
+# Dépôt public : les journaux sont publics. L'agent n'y écrit que des compteurs
+# et des codes d'erreur ; les prospects ne partent que par e-mail.
+name: Lead Radar
+
+on:
+  schedule:
+    # Toutes les 30 min (UTC). GitHub peut retarder les tâches planifiées de
+    # quelques minutes en période de forte charge.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Mode d'exécution"
+        type: choice
+        options: [assiste, surveillance, test]
+        default: assiste
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lead-radar
+  cancel-in-progress: false
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Dépendances du moteur de qualification
+        run: npm ci --no-audit --no-fund
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # État sans donnée personnelle (empreintes SHA-256 + compteurs uniquement).
+      - name: Restaurer l'état
+        uses: actions/cache/restore@v4
+        with:
+          path: agent/.state
+          key: lead-radar-state-${{ github.run_id }}
+          restore-keys: lead-radar-state-
+
+      - name: Lancer l'agent
+        working-directory: agent
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LEAD_RADAR_SENDER_EMAIL: ${{ secrets.LEAD_RADAR_SENDER_EMAIL }}
+          LEAD_RADAR_NOTIFICATION_EMAIL: ${{ secrets.LEAD_RADAR_NOTIFICATION_EMAIL }}
+          RADAR_RSS_FEEDS: ${{ secrets.RADAR_RSS_FEEDS }}
+          BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+        run: python3 -m lead_radar_agent --mode "${{ inputs.mode || 'assiste' }}"
+
+      - name: Sauvegarder l'état
+        if: always() && hashFiles('agent/.state/state.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: agent/.state
+          key: lead-radar-state-${{ github.run_id }}

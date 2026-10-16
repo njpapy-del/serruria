@@ -302,3 +302,13 @@ describe("classes commerciales", () => {
     expect(bsky.reponsePublique.automatiseeAutorisee).toBe(false);
   });
 });
+
+describe("formulations courantes", () => {
+  it.each([
+    ["ma porte est claquée", "porte_claquee"],
+    ["la porte s'est refermée derrière moi", "porte_claquee"],
+    ["porte fermée à clé et plus de clé", "porte_bloquee"],
+  ])("%s → %s", (text, id) => {
+    expect(detectServices(normalize(text))[0].id).toBe(id);
+  });
+});
