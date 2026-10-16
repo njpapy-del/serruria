@@ -26,6 +26,20 @@ BESOINS = [
 
 DEMANDES = ["cherche serrurier", "besoin serrurier", "recherche serrurier", "serrurier urgence"]
 
+# Plomberie : catalogue distinct (détection et comptage ; pas de prospects tant
+# que l'activité n'est pas activée).
+BESOINS_PLOMBERIE = [
+    "wc bouché",
+    "toilettes bouchées",
+    "évier bouché",
+    "canalisation bouchée",
+    "fuite d'eau",
+    "tuyau éclaté",
+    "dégât des eaux",
+    "cherche plombier",
+    "plombier urgence",
+]
+
 DEPARTEMENTS = {
     "75": "Paris",
     "77": "Seine-et-Marne",
@@ -38,10 +52,10 @@ DEPARTEMENTS = {
 }
 
 
-def broad_queries() -> list[str]:
+def broad_queries(include_plomberie: bool = True) -> list[str]:
     """Requêtes larges (sources à faible volume comme Bluesky) : le filtrage
     géographique est fait ensuite par le moteur de qualification."""
-    return ["serrurier", *DEMANDES, *BESOINS]
+    return ["serrurier", *DEMANDES, *BESOINS, *(BESOINS_PLOMBERIE if include_plomberie else [])]
 
 
 def localized_queries(departements: list[str], communes: list[str]) -> list[str]:
@@ -75,10 +89,15 @@ DEMANDES_FORUM = [
 ]
 
 
-def demand_queries(departements: list[str], communes: list[str]) -> list[str]:
-    """Requêtes moteur de recherche orientées demandes de particuliers."""
+DEMANDES_FORUM_PLOMBERIE = ['"je cherche un plombier"', '"wc bouché" aide', '"fuite d\'eau" aide']
+
+
+def demand_queries(departements: list[str], communes: list[str], include_plomberie: bool = True) -> list[str]:
+    """Requêtes moteur de recherche orientées demandes de particuliers.
+    La serrurerie reste majoritaire (6 formulations sur 9 par lieu)."""
     lieux = [DEPARTEMENTS[c] for c in departements if c in DEPARTEMENTS] + communes
-    return [f"{d} {lieu}" for lieu, d in product(lieux, DEMANDES_FORUM)]
+    formulations = [*DEMANDES_FORUM, *(DEMANDES_FORUM_PLOMBERIE if include_plomberie else [])]
+    return [f"{d} {lieu}" for lieu, d in product(lieux, formulations)]
 
 
 def next_batch(all_queries: list[str], cursor: int, size: int) -> tuple[list[str], int]:

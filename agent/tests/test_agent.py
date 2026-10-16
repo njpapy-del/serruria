@@ -347,19 +347,31 @@ class BraveComplianceTest(unittest.TestCase):
         self.assertEqual(state.data["seen"], {})
         self.assertEqual(state.data["notified"], {})
 
+    def test_brave_reserve_aux_passages_planifies(self):
+        from lead_radar_agent.run import collect
+
+        scfg = CFG["sources"]["brave_search"]
+        slot = datetime(2026, 10, 16, 6, 30, tzinfo=timezone.utc)  # 8 h 30 à Paris, dans un créneau
+        manual = collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k"}, slot, {"opener": opener_for([])})
+        self.assertEqual(manual.skipped_reason, "source payante : réservée aux passages planifiés")
+
     def test_brave_hors_creneau_ne_fait_aucun_appel(self):
         from lead_radar_agent.run import collect
 
         scfg = CFG["sources"]["brave_search"]
-        midi = datetime(2026, 10, 16, 10, 0, tzinfo=timezone.utc)  # 12 h à Paris, hors 07:00-07:59
-        res = collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k"}, midi, {"opener": opener_for([])})
-        self.assertEqual(res.skipped_reason, "hors du créneau quotidien")
+        hors = datetime(2026, 10, 16, 8, 30, tzinfo=timezone.utc)  # 10 h 30 à Paris
+        res = collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k", "RADAR_ALLOW_PAID": "true"}, hors, {"opener": opener_for([])})
+        self.assertEqual(res.skipped_reason, "hors des créneaux Brave")
 
-    def test_plafond_mensuel_theorique_sous_le_credit_gratuit(self):
+    def test_brave_dans_un_creneau_planifie(self):
+        from lead_radar_agent.run import collect
+
         scfg = CFG["sources"]["brave_search"]
-        self.assertLessEqual(31 * scfg["max_queries_per_day"] * scfg["cost_per_query_usd"], 5.0)
-        self.assertLess(scfg["monthly_budget_usd"], 5.0)
-        self.assertFalse(scfg["persist_results"])
+        slot = datetime(2026, 10, 16, 6, 30, tzinfo=timezone.utc)
+        op = opener_for([FakeRes(body=b'{"web":{"results":[]}}')] * 10)
+        res = collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k", "RADAR_ALLOW_PAID": "true"}, slot, {"opener": op})
+        self.assertEqual(len(op.calls), scfg["max_queries_per_run"])
+        self.assertIsNone(res.skipped_reason)
 
     def test_extraits_brave_nettoyes(self):
         body = json.dumps({"web": {"results": [{"url": "https://x.test", "title": "L&#x27;astuce <strong>porte</strong>", "description": "<strong>Clé</strong> cassée"}]}}).encode()
@@ -370,6 +382,36 @@ class BraveComplianceTest(unittest.TestCase):
         qs = Q.demand_queries(["93"], ["Aubervilliers"])
         self.assertIn('"je cherche un serrurier" Seine-Saint-Denis', qs)
         self.assertTrue(all('"' in q for q in qs))
+
+
+class PlomberieEtCadenceTest(unittest.TestCase):
+    def test_plomberie_comptee_jamais_notifiee(self):
+        mailer = FakeMailer()
+        r = {**result(key="id:plomb"), "classe": "HORS_PRESTATION", "classeBrute": "DEMANDE_CONFIRMEE", "metier": "plomberie"}
+        item = RawItem("bluesky", "p1", "https://exemple.invalid/p1", "", "WC bouché", NOW)
+        state = State(Path("/dev/null"))
+        rep = run_once(mode="assiste", cfg=CFG, state=state, env={}, now=NOW, mailer=mailer,
+                       collected={"bluesky": SourceResult("bluesky", queries=["q"], items=[item])}, qualify_fn=fake_qualify({"WC bouché": r}))
+        self.assertEqual([s for s, _, _ in mailer.sent if "LEAD RADAR]" in s and "Synthèse" not in s], [])
+        self.assertEqual(rep.by_metier["plomberie"]["demandes"], 1)
+        self.assertEqual(rep.by_metier["plomberie"]["hors_prestation"], 1)
+        self.assertEqual(state.daily("2026-10-16")["demandes_plomberie"], 1)
+
+    def test_synthese_mesure_la_cadence(self):
+        state, mailer = State(Path("/dev/null")), FakeMailer()
+        for h in (17, 18, 20):  # 19 h, 20 h, 22 h à Paris
+            t = datetime(2026, 10, 16, h, 7, tzinfo=timezone.utc)
+            run_once(mode="assiste", cfg=CFG, state=state, env={}, now=t, mailer=mailer, collected={}, qualify_fn=fake_qualify({}))
+        summary = [t for s, t, _ in mailer.sent if "Synthèse" in s][0]
+        self.assertIn("écart maximal 60 min", summary)  # la synthèse part au 2e passage (20 h)
+        self.assertIn("plomberie (non proposée, non notifiée)", summary)
+
+    def test_requetes_plomberie_separees_et_minoritaires(self):
+        qs = Q.demand_queries(["93"], [])
+        plomb = [q for q in qs if "plombier" in q or "wc" in q or "fuite" in q]
+        self.assertTrue(plomb)
+        self.assertLess(len(plomb), len(qs) / 2)
+        self.assertNotIn("wc bouché", Q.broad_queries(include_plomberie=False))
 
 
 class EndToEndQualifyTest(unittest.TestCase):

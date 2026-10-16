@@ -4,7 +4,7 @@
 
 import type { RadarConfig, ServiceId } from "./config";
 import { distanceKm, locate, type Localisation } from "./geo";
-import { detectServices, detectUrgency, type ServiceMatch } from "./services";
+import { detectPlumbing, detectServices, detectUrgency, type PlumbingMatch, type ServiceMatch } from "./services";
 import { containsAny, normalize } from "./text";
 import type { SourceDescriptor } from "./sources";
 
@@ -17,7 +17,8 @@ export type Categorie =
   | "HORS_ZONE"
   | "NON_PERTINENT"
   | "DOUBLON"
-  | "A_VERIFIER";
+  | "A_VERIFIER"
+  | "HORS_PRESTATION";
 
 export type RawItem = {
   sourceId: string;
@@ -40,7 +41,11 @@ export type ClasseCommerciale =
   | "NON_PERTINENT"
   | "HORS_IDF"
   | "INACCESSIBLE"
-  | "A_VERIFIER";
+  | "A_VERIFIER"
+  /** Besoin réel mais prestation non assurée ou activité non activée (plomberie). */
+  | "HORS_PRESTATION";
+
+export type Metier = "serrurerie" | "plomberie";
 
 export type ScoreLine = { critere: string; points: number; max: number; raison: string };
 
@@ -59,6 +64,12 @@ export type Qualification = {
   categorieRaison: string;
   classe: ClasseCommerciale;
   urgente: boolean;
+  metier: Metier | null;
+  plomberie: PlumbingMatch[];
+  /** Prestation réellement assurée et activée comme source de prospects. */
+  prestationProposee: boolean;
+  /** Classe qu'aurait eue la demande si la prestation était proposée (statistiques). */
+  classeBrute: ClasseCommerciale;
 };
 
 // Une personne qui demande de l'aide (première personne, question, sollicitation).
@@ -68,6 +79,10 @@ const DEMAND_PHRASES = [
   "recherche un serrurier",
   "recherche serrurier",
   "cherche un serrurier",
+  "cherche un plombier",
+  "recherche un plombier",
+  "recherche plombier",
+  "besoin d un plombier",
   "cherche serrurier",
   "besoin d un serrurier",
   "besoin serrurier",
@@ -108,6 +123,9 @@ const STRONG_DEMAND_PHRASES = [
   "cherche serrurier",
   "besoin d un serrurier",
   "besoin serrurier",
+  "cherche un plombier",
+  "recherche un plombier",
+  "besoin d un plombier",
   "j ai besoin",
   "quelqu un connait",
   "quelqu un connaitrait",
@@ -239,8 +257,22 @@ function safeHost(url: string): string {
 export function qualify(item: RawItem, source: SourceDescriptor, config: RadarConfig, now: Date): Qualification {
   const text = normalize(`${item.title} ${item.content}`);
   const { kind, reasons: kindReasons } = classifyKind(text, item.url);
-  const services = detectServices(text).filter((s) => config.services.includes(s.id));
-  const servicePrincipal = services[0]?.id ?? null;
+  const lockServices = detectServices(text).filter((s) => config.services.includes(s.id));
+  const plumbing = detectPlumbing(text);
+  // Métier : un besoin de serrurerie précis l'emporte ; sinon plomberie ; sinon « serrurier » générique.
+  const metier: Metier | null = lockServices.some((s) => s.id !== "serrurier_generique")
+    ? "serrurerie"
+    : plumbing.length > 0
+      ? "plomberie"
+      : lockServices.length > 0
+        ? "serrurerie"
+        : null;
+  // Pour le score, la plomberie utilise son propre catalogue.
+  const services: ServiceMatch[] =
+    metier === "plomberie"
+      ? plumbing.map((p) => ({ id: "serrurier_generique" as ServiceId, label: p.label, urgentParNature: p.urgentParNature, matched: p.matched }))
+      : lockServices;
+  const servicePrincipal = metier === "serrurerie" ? (lockServices[0]?.id ?? null) : null;
   const urgenceExplicite = detectUrgency(text);
   const urgentParNature = services.some((s) => s.urgentParNature);
   const localisation = locate(`${item.title} ${item.content}`);
@@ -263,7 +295,8 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
   // Localisation (25)
   const dept =
     localisation.kind === "commune" ? localisation.commune.departement : localisation.kind === "departement" ? localisation.departement : null;
-  const inZone = dept !== null && config.departements.includes(dept);
+  const zone = metier === "plomberie" ? config.plomberie.departements : config.departements;
+  const inZone = dept !== null && zone.includes(dept);
   if (localisation.kind === "commune" && inZone) {
     const horsRayon = config.rayonKm !== null && distance !== null && distance > config.rayonKm;
     const points = horsRayon ? 15 : 25;
@@ -283,7 +316,15 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
   }
 
   // Prestation (20)
-  if (servicePrincipal && servicePrincipal !== "serrurier_generique") {
+  if (metier === "plomberie") {
+    const precise = plumbing.some((p) => p.id !== "plombier_generique");
+    lignes.push({
+      critere: "Prestation",
+      points: precise ? 20 : 10,
+      max: 20,
+      raison: `plomberie : ${plumbing.map((p) => p.label).join(", ")}`,
+    });
+  } else if (servicePrincipal && servicePrincipal !== "serrurier_generique") {
     lignes.push({ critere: "Prestation", points: 20, max: 20, raison: services.map((s) => s.label).join(", ") });
   } else if (servicePrincipal === "serrurier_generique") {
     lignes.push({ critere: "Prestation", points: 10, max: 20, raison: "besoin de serrurier non précisé" });
@@ -311,7 +352,7 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
   const score = lignes.reduce((sum, l) => sum + l.points, 0);
   const urgente = urgenceExplicite.length > 0 || urgentParNature;
   const { categorie, raison } = categorize({ kind, services, localisation, inZone, ageHeures, score, urgence: urgente, config });
-  const classe = classify({
+  let classe = classify({
     kind,
     categorie,
     hasService: services.length > 0,
@@ -319,6 +360,22 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
     localisation,
     trop_ancienne: ageHeures !== null && ageHeures > config.ancienneteMaxJours * 24,
   });
+
+  const classeBrute = classe;
+  let categorieFinale = categorie;
+  let raisonFinale = raison;
+  let prestationProposee = metier === "serrurerie";
+  if (metier === "plomberie") {
+    const familleProposee = plumbing.some((p) => (config.plomberie.famillesProposees as string[]).includes(p.famille));
+    prestationProposee = config.plomberie.prospectsActifs && familleProposee;
+    if (!prestationProposee && (classe === "DEMANDE_CONFIRMEE" || classe === "DEMANDE_PROBABLE" || classe === "A_VERIFIER")) {
+      classe = "HORS_PRESTATION";
+      categorieFinale = "HORS_PRESTATION";
+      raisonFinale = config.plomberie.prospectsActifs
+        ? "plomberie : prestation non assurée par l'entreprise"
+        : "plomberie : activité non proposée comme prospect pour l'instant";
+    }
+  }
 
   return {
     kind,
@@ -331,10 +388,14 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
     ageHeures,
     score,
     lignes,
-    categorie,
-    categorieRaison: raison,
+    categorie: categorieFinale,
+    categorieRaison: raisonFinale,
     classe,
     urgente,
+    metier,
+    plomberie: plumbing,
+    prestationProposee,
+    classeBrute,
   };
 }
 

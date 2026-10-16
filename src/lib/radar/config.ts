@@ -42,6 +42,15 @@ export type RadarConfig = {
   services: ServiceId[];
   /** Au-delà, une publication est considérée comme ancienne (jours). */
   ancienneteMaxJours: number;
+  /** Plomberie : catalogue séparé, désactivé comme source de prospects. */
+  plomberie: {
+    /** Si false : demandes détectées et comptées, jamais proposées ni notifiées. */
+    prospectsActifs: boolean;
+    /** Familles réellement assurées (confirmé : débouchage). */
+    famillesProposees: ("debouchage" | "fuite" | "robinetterie_sanitaires")[];
+    /** Zone annoncée par le projet « A l'eau Plombier 24 » (sans le 95). */
+    departements: string[];
+  };
 };
 
 /** Ancien numéro, à ne jamais proposer dans une réponse commerciale. */
@@ -88,6 +97,11 @@ export function defaultRadarConfig(): RadarConfig {
       "serrurier_generique",
     ],
     ancienneteMaxJours: 30,
+    plomberie: {
+      prospectsActifs: false,
+      famillesProposees: ["debouchage"],
+      departements: ["75", "77", "78", "91", "92", "93", "94"],
+    },
   };
 }
 

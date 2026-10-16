@@ -36,6 +36,8 @@ class Report:
     notification_errors: list[str] = field(default_factory=list)
     summary_sent: bool = False
     outside_hours: bool = False
+    by_metier: dict[str, dict[str, int]] = field(default_factory=dict)
+    finished_at: str | None = None
 
     @property
     def search_failed(self) -> bool:
@@ -56,6 +58,8 @@ class Report:
                 "notifications_sent": self.notifications_sent,
                 "notification_errors": self.notification_errors,
                 "daily_summary_sent": self.summary_sent,
+                "by_metier": self.by_metier,
+                "finished_at": self.finished_at,
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -85,7 +89,7 @@ def collect(source_id: str, scfg: dict, cfg: dict, state: State, env: dict, now:
     today = now.date().isoformat()
     if source_id == "bluesky":
         left = int(scfg.get("max_queries_per_day", 0)) - state.queries_today(source_id, today)
-        all_q = Q.broad_queries()
+        all_q = Q.broad_queries(include_plomberie=cfg.get("metiers", {}).get("plomberie_recherche", True))
         batch, cursor = Q.next_batch(all_q, state.data["query_cursor"].get(source_id, 0), min(int(scfg.get("max_queries_per_run", 0)), left))
         if not batch:
             return SourceResult(source_id, skipped_reason="quota quotidien de requêtes atteint")
@@ -103,12 +107,18 @@ def collect(source_id: str, scfg: dict, cfg: dict, state: State, env: dict, now:
     if source_id == "brave_search":
         brave.check_enabled(scfg, env.get("BRAVE_SEARCH_API_KEY"))
         # Créneau fixe : borne la dépense même si l'état (cache) est perdu.
-        if not _in_window(scfg.get("run_window"), now.astimezone(ZoneInfo(cfg.get("timezone", "Europe/Paris")))):
-            return SourceResult(source_id, skipped_reason="hors du créneau quotidien")
+        # Dépense bornée sans dépendre de l'état (le cache peut être perdu) :
+        # seulement lors des passages planifiés (≤ 1/heure) et dans les créneaux.
+        if scfg.get("scheduled_only") and env.get("RADAR_ALLOW_PAID") != "true":
+            return SourceResult(source_id, skipped_reason="source payante : réservée aux passages planifiés")
+        local = now.astimezone(ZoneInfo(cfg.get("timezone", "Europe/Paris")))
+        slots = scfg.get("run_slots") or ([scfg["run_window"]] if scfg.get("run_window") else [])
+        if slots and not any(_in_window(w, local) for w in slots):
+            return SourceResult(source_id, skipped_reason="hors des créneaux Brave")
         month = now.strftime("%Y-%m")
         budget_left = float(scfg["monthly_budget_usd"]) - state.spend(month)
         left = int(scfg.get("max_queries_per_day", 0)) - state.queries_today(source_id, today)
-        all_q = Q.demand_queries(cfg.get("departements", []), cfg.get("communes_prioritaires", []))
+        all_q = Q.demand_queries(cfg.get("departements", []), cfg.get("communes_prioritaires", []), include_plomberie=cfg.get("metiers", {}).get("plomberie_recherche", True))
         batch, cursor = Q.next_batch(all_q, state.data["query_cursor"].get(source_id, 0), min(int(scfg.get("max_queries_per_run", 0)), left))
         if not batch:
             return SourceResult(source_id, skipped_reason="quota quotidien de requêtes atteint")
@@ -142,6 +152,7 @@ def run_once(
     today = local_now.date().isoformat()
     daily = state.daily(today)
     daily["runs"] += 1
+    daily.setdefault("run_times", []).append(now.isoformat(timespec="seconds"))
     report = Report(mode=mode, started_at=now.isoformat())
     engine_mode = "assiste" if mode in ("assiste", "test") else "surveillance"
 
@@ -213,6 +224,17 @@ def run_once(
             if persist:
                 state.remember(r["dedupeKeys"], now)
             report.by_class[r["classe"]] = report.by_class.get(r["classe"], 0) + 1
+            metier = r.get("metier") or "aucun"
+            m = report.by_metier.setdefault(metier, {"analyses": 0, "demandes": 0, "urgentes": 0, "hors_prestation": 0})
+            m["analyses"] += 1
+            brute = r.get("classeBrute", r["classe"])
+            if brute in LEAD_CLASSES_DEFAULT:
+                m["demandes"] += 1
+                if r.get("urgente"):
+                    m["urgentes"] += 1
+                daily[f"demandes_{metier}"] = daily.get(f"demandes_{metier}", 0) + 1
+            if r["classe"] == "HORS_PRESTATION":
+                m["hors_prestation"] += 1
             if r["classe"] in LEAD_CLASSES_DEFAULT:
                 daily["demandes"] += 1
             if r["classe"] in cfg.get("notify_classes", LEAD_CLASSES_DEFAULT) and r["score"] >= int(cfg.get("notify_min_score", 0)):
@@ -276,6 +298,14 @@ def run_once(
     # 5. Synthèse quotidienne
     if mailer is not None and local_now.hour >= int(cfg.get("daily_summary_hour", 20)) and state.data["last_summary_date"] != today:
         d = state.daily(today)
+        times = sorted(datetime.fromisoformat(t) for t in d.get("run_times", []))
+        gaps = [(b - a).total_seconds() / 60 for a, b in zip(times, times[1:])]
+        cadence = (
+            f"Premier passage : {times[0].astimezone(tz):%H:%M}, dernier : {times[-1].astimezone(tz):%H:%M}, "
+            f"écart moyen {sum(gaps) / len(gaps):.0f} min, écart maximal {max(gaps):.0f} min"
+            if gaps
+            else "Un seul passage aujourd'hui : écart non mesurable"
+        )
         sources_txt = "\n".join(
             f"  - {SOURCE_NAMES.get(sid, sid)} : dernier succès {s.get('last_success') or 'jamais'}, erreurs consécutives {s.get('consecutive_errors', 0)}"
             for sid, s in state.data["sources"].items()
@@ -285,6 +315,8 @@ def run_once(
                 f"[LEAD RADAR] Synthèse du {today}",
                 f"Passages : {d['runs']}\nRecherches effectuées : {d['queries']}\nConsultations de sources : {d['sources']}\n"
                 f"Éléments analysés : {d['items']}\nDemandes détectées (confirmées ou probables) : {d['demandes']}\n"
+                f"  dont serrurerie : {d.get('demandes_serrurerie', 0)} — dont plomberie (non proposée, non notifiée) : {d.get('demandes_plomberie', 0)}\n"
+                f"Cadence : {cadence}\n"
                 f"Notifications envoyées : {d['notifications']}\nErreurs de recherche : {d['errors']}\n\nÉtat des sources :\n{sources_txt}\n\n"
                 "Une erreur de recherche n'est jamais comptée comme une recherche sans résultat.",
                 f"summary-{today}",
@@ -295,6 +327,7 @@ def run_once(
             report.notification_errors.append(str(exc))
 
     state.purge(now, int(cfg.get("retention_days", 60)))
+    report.finished_at = datetime.now(now.tzinfo).isoformat()
     return report
 
 

@@ -10,7 +10,7 @@ import { locate } from "../geo";
 import { processItems } from "../pipeline";
 import { qualify, type RawItem } from "../qualify";
 import { decideAction, DEFAULT_SOURCE_SETTINGS, generateResponse } from "../respond";
-import { detectServices } from "../services";
+import { detectPlumbing, detectServices } from "../services";
 import { getSource, SOURCES, type SourceDescriptor } from "../sources";
 import { normalize } from "../text";
 
@@ -326,5 +326,51 @@ describe("cas réels observés sur Brave (2026-10-16), reformulés", () => {
 
   it("une vraie demande reste une demande", () => {
     expect(qualify(item("Je cherche un serrurier à Vitry-sur-Seine", "ma clé est cassée dans la serrure, urgent"), brave, config, NOW).classe).toBe("DEMANDE_CONFIRMEE");
+  });
+});
+
+describe("plomberie (catalogue distinct, non proposée comme prospect)", () => {
+  const bsky = getSource("bluesky")!;
+
+  it.each([
+    ["mes toilettes sont bouchées et l'eau déborde", "debouchage_wc", "debouchage"],
+    ["évier bouché depuis hier", "debouchage_evier_lavabo", "debouchage"],
+    ["un tuyau éclaté sous l'évier", "fuite_eau", "fuite"],
+    ["dégât des eaux chez moi", "degat_des_eaux", "fuite"],
+    ["le robinet est cassé", "robinetterie", "robinetterie_sanitaires"],
+    ["la chasse d'eau qui fuit", "chasse_eau", "robinetterie_sanitaires"],
+  ])("%s → %s", (text, id, famille) => {
+    const [first] = detectPlumbing(normalize(text));
+    expect(first).toMatchObject({ id, famille });
+  });
+
+  it("une vraie demande de plomberie est classée HORS_PRESTATION, sans réponse", () => {
+    const q = qualify(item("Je cherche un plombier en urgence à Créteil", "WC bouché, ça déborde"), bsky, config, NOW);
+    expect(q.metier).toBe("plomberie");
+    expect(q.classe).toBe("HORS_PRESTATION");
+    expect(q.classeBrute).toBe("DEMANDE_CONFIRMEE");
+    expect(q.prestationProposee).toBe(false);
+    expect(decideAction(q, bsky, { ...DEFAULT_SOURCE_SETTINGS, mode: "assiste" }, {}).action).toBe("aucune");
+  });
+
+  it("si la plomberie est activée, seul le débouchage devient un prospect", () => {
+    const actif = { ...config, plomberie: { ...config.plomberie, prospectsActifs: true } };
+    expect(qualify(item("Je cherche un plombier à Créteil", "évier bouché"), bsky, actif, NOW).classe).toBe("DEMANDE_CONFIRMEE");
+    expect(qualify(item("Je cherche un plombier à Créteil", "robinet cassé"), bsky, actif, NOW).classe).toBe("HORS_PRESTATION");
+  });
+
+  it("utilise la zone plomberie (le 95 n'en fait pas partie)", () => {
+    const actif = { ...config, plomberie: { ...config.plomberie, prospectsActifs: true } };
+    expect(qualify(item("Je cherche un plombier à Argenteuil", "WC bouché"), bsky, actif, NOW).classe).toBe("HORS_IDF");
+  });
+
+  it("un besoin de serrurerie précis reste de la serrurerie même si l'eau est mentionnée", () => {
+    const q = qualify(item("Je cherche un serrurier à Créteil", "porte claquée et j'ai laissé le robinet ouvert"), bsky, config, NOW);
+    expect(q.metier).toBe("serrurerie");
+    expect(q.classe).toBe("DEMANDE_CONFIRMEE");
+  });
+
+  it("un article de conseil en plomberie reste informatif", () => {
+    expect(qualify(item("WC bouché : les bons gestes", "Astuce : bicarbonate et vinaigre"), bsky, config, NOW).classe).toBe("CONTENU_INFORMATIF");
   });
 });

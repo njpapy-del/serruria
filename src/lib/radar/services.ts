@@ -164,6 +164,98 @@ export const URGENCY_PHRASES = [
 
 export type ServiceMatch = { id: ServiceId; label: string; urgentParNature: boolean; matched: string[] };
 
+// ── Plomberie : catalogue DISTINCT ───────────────────────────────────────────
+// Activité non proposée comme prospect à ce jour (décision du 2026-10-16) : les
+// demandes sont détectées et comptées, jamais présentées comme exploitables.
+// Seul le débouchage est confirmé comme prestation assurée.
+
+export type PlumbingServiceId =
+  | "debouchage_wc"
+  | "debouchage_evier_lavabo"
+  | "debouchage_canalisation"
+  | "fuite_eau"
+  | "degat_des_eaux"
+  | "robinetterie"
+  | "chasse_eau"
+  | "plombier_generique";
+
+export type PlumbingFamily = "debouchage" | "fuite" | "robinetterie_sanitaires" | "generique";
+
+type PlumbingDef = { id: PlumbingServiceId; label: string; famille: PlumbingFamily; urgentParNature: boolean; phrases: string[] };
+
+export const PLUMBING_SERVICES: PlumbingDef[] = [
+  {
+    id: "debouchage_wc",
+    label: "WC bouché",
+    famille: "debouchage",
+    urgentParNature: true,
+    phrases: ["wc bouche", "wc bouches", "wc est bouche", "wc sont bouches", "toilettes sont bouchees", "toilette est bouchee", "l eau deborde", "toilettes bouchees", "toilette bouchee", "toilettes qui debordent", "wc qui deborde", "debouchage wc", "deboucher les toilettes", "deboucher mes toilettes"],
+  },
+  {
+    id: "debouchage_evier_lavabo",
+    label: "Évier ou lavabo bouché",
+    famille: "debouchage",
+    urgentParNature: false,
+    phrases: ["evier bouche", "evier est bouche", "lavabo bouche", "lavabo est bouche", "douche bouchee", "baignoire bouchee", "siphon bouche", "deboucher l evier", "deboucher mon evier", "eau ne s evacue plus", "l eau ne s ecoule plus"],
+  },
+  {
+    id: "debouchage_canalisation",
+    label: "Canalisation bouchée",
+    famille: "debouchage",
+    urgentParNature: true,
+    phrases: ["canalisation bouchee", "canalisation est bouchee", "canalisations bouchees", "canalisations sont bouchees", "tuyau bouche", "evacuation bouchee", "debouchage canalisation", "deboucher une canalisation", "remontee d eaux usees"],
+  },
+  {
+    id: "fuite_eau",
+    label: "Fuite d'eau",
+    famille: "fuite",
+    urgentParNature: true,
+    phrases: ["fuite d eau", "fuite sur canalisation", "fuite de canalisation", "tuyau eclate", "tuyau perce", "canalisation percee", "fuite sous l evier", "fuite au plafond", "ca fuit"],
+  },
+  {
+    id: "degat_des_eaux",
+    label: "Dégât des eaux",
+    famille: "fuite",
+    urgentParNature: true,
+    phrases: ["degat des eaux", "degats des eaux", "inondation chez moi", "appartement inonde", "infiltration d eau"],
+  },
+  {
+    id: "robinetterie",
+    label: "Robinet cassé",
+    famille: "robinetterie_sanitaires",
+    urgentParNature: false,
+    phrases: ["robinet casse", "robinet est casse", "robinet qui fuit", "robinet bloque", "changer un robinet", "remplacer le robinet", "mitigeur"],
+  },
+  {
+    id: "chasse_eau",
+    label: "Chasse d'eau défectueuse",
+    famille: "robinetterie_sanitaires",
+    urgentParNature: false,
+    phrases: ["chasse d eau", "chasse qui coule", "chasse d eau qui fuit", "mecanisme de chasse"],
+  },
+  {
+    id: "plombier_generique",
+    label: "Besoin de plombier (non précisé)",
+    famille: "generique",
+    urgentParNature: false,
+    phrases: ["plombier", "plombiers", "plomberie"],
+  },
+];
+
+export type PlumbingMatch = { id: PlumbingServiceId; label: string; famille: PlumbingFamily; urgentParNature: boolean; matched: string[] };
+
+export function detectPlumbing(normalizedText: string): PlumbingMatch[] {
+  const matches = PLUMBING_SERVICES.map((s) => ({
+    id: s.id,
+    label: s.label,
+    famille: s.famille,
+    urgentParNature: s.urgentParNature,
+    matched: containsAny(normalizedText, s.phrases),
+  })).filter((m) => m.matched.length > 0);
+  const precise = matches.filter((m) => m.id !== "plombier_generique");
+  return precise.length > 0 ? precise : matches;
+}
+
 /** Besoins détectés, du plus précis au plus générique. */
 export function detectServices(normalizedText: string): ServiceMatch[] {
   const matches = SERVICES.map((s) => ({

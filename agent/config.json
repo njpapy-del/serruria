@@ -42,9 +42,9 @@
   "sources": {
     "bluesky": {
       "enabled": true,
-      "max_queries_per_run": 8,
-      "max_queries_per_day": 200,
-      "min_interval_minutes": 30,
+      "max_queries_per_run": 10,
+      "max_queries_per_day": 300,
+      "min_interval_minutes": 45,
       "lookback_hours": 6
     },
     "alertes_rss": {
@@ -56,19 +56,38 @@
     "brave_search": {
       "enabled": true,
       "approved_by_owner": true,
-      "_doc": "Forfait gratuit Brave : 5 $ de crédit/mois, AUCUN plafond côté Brave (vérifié via x-ratelimit-policy). Plafond garanti par l'agent : 1 créneau/jour × 10 requêtes = 310 requêtes/mois max ≈ 1,55 $. persist_results=false : conditions Brave (stockage transitoire uniquement).",
+      "_doc": "Forfait gratuit Brave : 5 $/mois de crédit, AUCUN plafond côté Brave. Plafond garanti par l'agent sans dépendre de l'état : uniquement lors des passages planifiés (au plus 1 par heure), dans 4 créneaux/jour, 6 requêtes par créneau → ≤ 24/jour ≤ 744/mois ≈ 3,72 $. persist_results=false (stockage transitoire uniquement).",
       "persist_results": false,
-      "run_window": {
-        "start": "07:00",
-        "end": "07:59"
-      },
-      "max_queries_per_run": 10,
-      "max_queries_per_day": 10,
+      "max_queries_per_run": 6,
+      "max_queries_per_day": 24,
       "monthly_budget_usd": 4.5,
       "cost_per_query_usd": 0.005,
-      "min_interval_minutes": 1380,
+      "min_interval_minutes": 180,
       "freshness": "pw",
-      "fetch_pages": false
+      "fetch_pages": false,
+      "run_slots": [
+        {
+          "start": "08:00",
+          "end": "08:59"
+        },
+        {
+          "start": "12:00",
+          "end": "12:59"
+        },
+        {
+          "start": "16:00",
+          "end": "16:59"
+        },
+        {
+          "start": "20:00",
+          "end": "20:59"
+        }
+      ],
+      "scheduled_only": true
     }
+  },
+  "metiers": {
+    "_doc": "Plomberie : détectée et comptée, jamais proposée (décision du 2026-10-16). Seul le débouchage est assuré.",
+    "plomberie_recherche": true
   }
 }

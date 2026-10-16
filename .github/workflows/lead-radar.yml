@@ -5,9 +5,10 @@ name: Lead Radar
 
 on:
   schedule:
-    # Toutes les 30 min (UTC). GitHub peut retarder les tâches planifiées de
-    # quelques minutes en période de forte charge.
-    - cron: "*/30 * * * *"
+    # Toutes les heures à la minute 7 (UTC). Mesuré le 2026-10-16 : avec */30,
+    # GitHub n'a lancé que 2 passages en 3 h (écart 164 min). Les tâches
+    # planifiées sont « au mieux » : elles peuvent être retardées ou sautées.
+    - cron: "7 * * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -58,6 +59,8 @@ jobs:
           LEAD_RADAR_NOTIFICATION_EMAIL: ${{ secrets.LEAD_RADAR_NOTIFICATION_EMAIL }}
           RADAR_RSS_FEEDS: ${{ secrets.RADAR_RSS_FEEDS }}
           BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+          # Source payante (Brave) autorisée uniquement lors des passages planifiés.
+          RADAR_ALLOW_PAID: ${{ github.event_name == 'schedule' }}
         run: python3 -m lead_radar_agent --mode "${{ inputs.mode || 'assiste' }}"
 
       - name: Sauvegarder l'état
