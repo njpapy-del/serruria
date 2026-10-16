@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "radar": "tsx scripts/radar-cli.ts"
+    "radar": "tsx scripts/radar-cli.ts",
+    "test:agent": "cd agent && python3 -m unittest discover -s tests -t ."
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",

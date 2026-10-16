@@ -1,0 +1,37 @@
+{
+  "_doc": "Configuration du Lead Radar (aucun secret ici : les clés sont dans les variables d'environnement). Voir agent/README.md.",
+  "timezone": "Europe/Paris",
+  "surveillance_hours": { "start": "00:00", "end": "23:59" },
+  "daily_summary_hour": 20,
+  "departements": ["75", "77", "78", "91", "92", "93", "94", "95"],
+  "communes_prioritaires": ["Paris", "Aubervilliers", "Saint-Denis", "Pantin", "Montreuil", "Bobigny", "Créteil", "Vincennes", "Boulogne-Billancourt", "Nanterre", "Argenteuil", "Versailles", "Évry-Courcouronnes", "Meaux"],
+  "notify_classes": ["DEMANDE_CONFIRMEE", "DEMANDE_PROBABLE"],
+  "notify_min_score": 45,
+  "max_items_per_email_batch": 10,
+  "retention_days": 60,
+  "sources": {
+    "bluesky": {
+      "enabled": true,
+      "max_queries_per_run": 8,
+      "max_queries_per_day": 200,
+      "min_interval_minutes": 30,
+      "lookback_hours": 6
+    },
+    "alertes_rss": {
+      "enabled": true,
+      "max_feeds_per_run": 20,
+      "min_interval_minutes": 30,
+      "fetch_pages": false
+    },
+    "brave_search": {
+      "enabled": false,
+      "approved_by_owner": false,
+      "max_queries_per_run": 3,
+      "max_queries_per_day": 30,
+      "monthly_budget_usd": 0,
+      "cost_per_query_usd": 0.005,
+      "min_interval_minutes": 60,
+      "fetch_pages": true
+    }
+  }
+}
