@@ -275,3 +275,30 @@ describe("pipeline", () => {
     expect(opportunities[1].reponseProposee).toBeNull();
   });
 });
+
+describe("classes commerciales", () => {
+  const bsky = getSource("bluesky")!;
+  it.each([
+    ["Je cherche un serrurier à Créteil", "porte claquée", 1, null, "DEMANDE_CONFIRMEE"],
+    ["Serrurier dans le Val-de-Marne ?", "ma porte est claquée svp", 1, null, "DEMANDE_PROBABLE"],
+    ["Je cherche un serrurier à Créteil", "porte claquée", 24 * 40, null, "DEMANDE_ANCIENNE"],
+    ["Arnaque au serrurier", "Selon l'enquête, un serrurier a été condamné", 1, null, "CONTENU_INFORMATIF"],
+    ["Serrurier Créteil", "porte claquée", 1, "https://www.pagesjaunes.fr/annuaire/creteil-94/serruriers", "ANNUAIRE"],
+    ["Serrurier Paris 24h/24", "Nos serruriers, devis gratuit", 1, null, "CONCURRENT_PUBLICITE"],
+    ["Je cherche un serrurier", "porte claquée 69003 Lyon", 1, null, "HORS_IDF"],
+    ["Je cherche un serrurier", "ma porte est claquée", 1, null, "A_VERIFIER"],
+    ["Mon serrurier a fait faillite", "il a mis la clé sous la porte", 1, null, "A_VERIFIER"],
+    ["Belle journée à Paris", "rien à voir", 1, null, "NON_PERTINENT"],
+  ])("%s / %s → %s", (title, content, hours, url, classe) => {
+    expect(qualify(item(title as string, content as string, hours as number, url as string | null), bsky, config, NOW).classe).toBe(classe);
+  });
+
+  it("marque l'urgence séparément de la classe", () => {
+    expect(qualify(item("Je cherche un serrurier à Créteil", "clé cassée, urgent"), bsky, config, NOW).urgente).toBe(true);
+    expect(qualify(item("Je cherche un serrurier à Créteil", "devis changement de serrure"), bsky, config, NOW).urgente).toBe(false);
+  });
+
+  it("Bluesky n'autorise pas les réponses automatiques", () => {
+    expect(bsky.reponsePublique.automatiseeAutorisee).toBe(false);
+  });
+});

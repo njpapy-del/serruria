@@ -29,6 +29,19 @@ export type RawItem = {
   publishedAt: Date | null;
 };
 
+/** Classe commerciale demandée par l'entreprise (indépendante du score). */
+export type ClasseCommerciale =
+  | "DEMANDE_CONFIRMEE"
+  | "DEMANDE_PROBABLE"
+  | "DEMANDE_ANCIENNE"
+  | "CONTENU_INFORMATIF"
+  | "ANNUAIRE"
+  | "CONCURRENT_PUBLICITE"
+  | "NON_PERTINENT"
+  | "HORS_IDF"
+  | "INACCESSIBLE"
+  | "A_VERIFIER";
+
 export type ScoreLine = { critere: string; points: number; max: number; raison: string };
 
 export type Qualification = {
@@ -44,6 +57,8 @@ export type Qualification = {
   lignes: ScoreLine[];
   categorie: Categorie;
   categorieRaison: string;
+  classe: ClasseCommerciale;
+  urgente: boolean;
 };
 
 // Une personne qui demande de l'aide (première personne, question, sollicitation).
@@ -81,6 +96,28 @@ const DEMAND_PHRASES = [
   "svp",
   "s il vous plait",
   "merci d avance",
+];
+
+// Formulations qui expriment sans ambiguïté qu'une personne cherche un serrurier.
+const STRONG_DEMAND_PHRASES = [
+  "je cherche",
+  "je recherche",
+  "recherche un serrurier",
+  "recherche serrurier",
+  "cherche un serrurier",
+  "cherche serrurier",
+  "besoin d un serrurier",
+  "besoin serrurier",
+  "j ai besoin",
+  "quelqu un connait",
+  "quelqu un connaitrait",
+  "vous connaissez",
+  "pouvez vous me recommander",
+  "je suis bloque",
+  "je suis bloquee",
+  "je suis enferme",
+  "je suis enfermee",
+  "aidez moi",
 ];
 
 // Communication d'un professionnel (publicité, concurrent).
@@ -224,7 +261,16 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
   }
 
   const score = lignes.reduce((sum, l) => sum + l.points, 0);
-  const { categorie, raison } = categorize({ kind, services, localisation, inZone, ageHeures, score, urgence: urgenceExplicite.length > 0 || urgentParNature, config });
+  const urgente = urgenceExplicite.length > 0 || urgentParNature;
+  const { categorie, raison } = categorize({ kind, services, localisation, inZone, ageHeures, score, urgence: urgente, config });
+  const classe = classify({
+    kind,
+    categorie,
+    hasService: services.length > 0,
+    strongDemand: containsAny(text, STRONG_DEMAND_PHRASES).length > 0,
+    localisation,
+    trop_ancienne: ageHeures !== null && ageHeures > config.ancienneteMaxJours * 24,
+  });
 
   return {
     kind,
@@ -239,7 +285,30 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
     lignes,
     categorie,
     categorieRaison: raison,
+    classe,
+    urgente,
   };
+}
+
+function classify(p: {
+  kind: ContentKind;
+  categorie: Categorie;
+  hasService: boolean;
+  strongDemand: boolean;
+  localisation: Localisation;
+  trop_ancienne: boolean;
+}): ClasseCommerciale {
+  if (p.kind === "annonce_pro") return "CONCURRENT_PUBLICITE";
+  if (p.kind === "annuaire") return "ANNUAIRE";
+  if (p.kind === "article") return "CONTENU_INFORMATIF";
+  if (!p.hasService) return "NON_PERTINENT";
+  if (p.trop_ancienne) return p.kind === "demande" ? "DEMANDE_ANCIENNE" : "NON_PERTINENT";
+  if (p.categorie === "HORS_ZONE") return "HORS_IDF";
+  if (p.kind !== "demande" || p.localisation.kind === "inconnue") return "A_VERIFIER";
+  // « Confirmée » = formulation explicite de demande + commune identifiée.
+  // Cela reste une lecture du texte : un humain doit toujours vérifier.
+  if (p.strongDemand && p.localisation.kind === "commune") return "DEMANDE_CONFIRMEE";
+  return "DEMANDE_PROBABLE";
 }
 
 function categorize(p: {

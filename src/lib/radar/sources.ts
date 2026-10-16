@@ -95,9 +95,31 @@ export const SOURCES: SourceDescriptor[] = [
     verifieLe: "2026-10-16",
   },
   {
+    id: "bluesky",
+    nom: "Bluesky (recherche publique)",
+    description:
+      "Recherche des publications publiques en français via l'API officielle (AppView api.bsky.app, sans compte). Vérifiée en réel le 2026-10-16.",
+    acces: "api",
+    statut: "disponible",
+    lit: ["texte de la publication", "date", "lien public"],
+    reponsePublique: {
+      automatiseeAutorisee: false,
+      manuellePossible: true,
+      note: "Les règles Bluesky classent en spam les réponses automatisées non sollicitées. Réponse manuelle uniquement. Obligation de supprimer un contenu supprimé par son auteur : le radar ne conserve pas le texte.",
+    },
+    messagePriveAutorise: false,
+    prerequis: [],
+    identifiants: [],
+    frequenceMinMinutes: 30,
+    cout: "0 €",
+    references: ["https://docs.bsky.app/docs/support/developer-guidelines", "https://docs.bsky.app/docs/api/app-bsky-feed-search-posts"],
+    verifieLe: "2026-10-16",
+  },
+  {
     id: "brave_search",
     nom: "Brave Search API",
-    description: "API de recherche web officielle et payante : demandes publiques non urgentes (indexation avec retard).",
+    description:
+      "API de recherche web officielle et payante. Ses conditions interdisent de stocker les résultats (stockage transitoire seulement) : le radar ne les persiste pas.",
     acces: "api",
     statut: "sous_conditions",
     lit: ["titre", "extrait", "URL", "âge de la page"],
