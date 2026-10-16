@@ -18,7 +18,8 @@ export type Categorie =
   | "NON_PERTINENT"
   | "DOUBLON"
   | "A_VERIFIER"
-  | "HORS_PRESTATION";
+  | "HORS_PRESTATION"
+  | "PRESTATION_A_CONFIRMER";
 
 export type RawItem = {
   sourceId: string;
@@ -33,6 +34,10 @@ export type RawItem = {
 /** Classe commerciale demandée par l'entreprise (indépendante du score). */
 export type ClasseCommerciale =
   | "DEMANDE_CONFIRMEE"
+  /** Demande de devis (pas d'urgence exprimée). */
+  | "DEMANDE_DEVIS"
+  /** Personne qui cherche un professionnel sans décrire de besoin précis. */
+  | "RECHERCHE_PRO"
   | "DEMANDE_PROBABLE"
   | "DEMANDE_ANCIENNE"
   | "CONTENU_INFORMATIF"
@@ -42,8 +47,13 @@ export type ClasseCommerciale =
   | "HORS_IDF"
   | "INACCESSIBLE"
   | "A_VERIFIER"
-  /** Besoin réel mais prestation non assurée ou activité non activée (plomberie). */
-  | "HORS_PRESTATION";
+  /** Besoin réel mais prestation non assurée (plomberie hors débouchage). */
+  | "HORS_PRESTATION"
+  /** Besoin réel, prestation assurée mais activité pas encore activée (débouchage). */
+  | "PRESTATION_A_CONFIRMER";
+
+/** Niveau d'urgence déduit uniquement du texte publié. */
+export type NiveauUrgence = "ELEVEE" | "RAPIDE" | "NON_URGENTE" | "DEVIS";
 
 export type Metier = "serrurerie" | "plomberie";
 
@@ -64,6 +74,8 @@ export type Qualification = {
   categorieRaison: string;
   classe: ClasseCommerciale;
   urgente: boolean;
+  niveauUrgence: NiveauUrgence;
+  niveauUrgenceRaison: string;
   metier: Metier | null;
   plomberie: PlumbingMatch[];
   /** Prestation réellement assurée et activée comme source de prospects. */
@@ -137,6 +149,50 @@ const STRONG_DEMAND_PHRASES = [
   "je suis enfermee",
   "aidez moi",
 ];
+
+// Urgence élevée : situation en cours qui empêche d'entrer, de sécuriser ou d'arrêter l'eau.
+const URGENCE_ELEVEE_PHRASES = [
+  "urgence",
+  "urgent",
+  "urgemment",
+  "en urgence",
+  "sos",
+  "help",
+  "a l aide",
+  "bloque dehors",
+  "bloquee dehors",
+  "enferme dehors",
+  "enfermee dehors",
+  "enferme a l interieur",
+  "enfermee a l interieur",
+  "bebe a l interieur",
+  "enfant a l interieur",
+  "gaz allume",
+  "feu allume",
+  "deborde",
+  "debordent",
+  "inonde",
+  "inondation",
+  "tuyau eclate",
+];
+
+// Intervention souhaitée rapidement, sans détresse exprimée.
+const URGENCE_RAPIDE_PHRASES = [
+  "rapidement",
+  "au plus vite",
+  "maintenant",
+  "tout de suite",
+  "immediatement",
+  "aujourd hui",
+  "ce soir",
+  "cette nuit",
+  "ce week end",
+  "dimanche",
+  "jour ferie",
+  "des que possible",
+];
+
+const DEVIS_PHRASES = ["devis", "combien couterait", "combien ca coute", "estimation", "tarif pour", "prix pour"];
 
 // Communication d'un professionnel (publicité, concurrent).
 const PRO_AD_PHRASES = [
@@ -361,6 +417,37 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
     trop_ancienne: ageHeures !== null && ageHeures > config.ancienneteMaxJours * 24,
   });
 
+  // Niveau d'urgence : uniquement d'après le texte.
+  const elevee = containsAny(text, URGENCE_ELEVEE_PHRASES);
+  const rapide = containsAny(text, URGENCE_RAPIDE_PHRASES);
+  const devis = containsAny(text, DEVIS_PHRASES);
+  let niveauUrgence: NiveauUrgence;
+  let niveauUrgenceRaison: string;
+  if (elevee.length > 0) {
+    niveauUrgence = "ELEVEE";
+    niveauUrgenceRaison = `mots du texte : ${elevee.join(", ")}`;
+  } else if (rapide.length > 0) {
+    niveauUrgence = "RAPIDE";
+    niveauUrgenceRaison = `délai exprimé : ${rapide.join(", ")}`;
+  } else if (devis.length > 0) {
+    niveauUrgence = "DEVIS";
+    niveauUrgenceRaison = `demande de devis : ${devis.join(", ")}`;
+  } else if (urgentParNature) {
+    niveauUrgence = "RAPIDE";
+    niveauUrgenceRaison = "situation qui appelle une intervention rapide (aucun mot d'urgence)";
+  } else {
+    niveauUrgence = "NON_URGENTE";
+    niveauUrgenceRaison = "aucune urgence exprimée";
+  }
+
+  // Affinage des vraies demandes : devis, recherche d'un professionnel sans besoin précis.
+  if (classe === "DEMANDE_CONFIRMEE" || classe === "DEMANDE_PROBABLE") {
+    const besoinPrecis =
+      metier === "plomberie" ? plumbing.some((p) => p.id !== "plombier_generique") : lockServices.some((s) => s.id !== "serrurier_generique");
+    if (!besoinPrecis) classe = "RECHERCHE_PRO";
+    else if (niveauUrgence === "DEVIS") classe = "DEMANDE_DEVIS";
+  }
+
   const classeBrute = classe;
   let categorieFinale = categorie;
   let raisonFinale = raison;
@@ -368,14 +455,19 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
   if (metier === "plomberie") {
     const familleProposee = plumbing.some((p) => (config.plomberie.famillesProposees as string[]).includes(p.famille));
     prestationProposee = config.plomberie.prospectsActifs && familleProposee;
-    // Seule une vraie demande (confirmée ou probable) devient HORS_PRESTATION :
+    // Seule une vraie demande devient HORS_PRESTATION / PRESTATION_A_CONFIRMER :
     // une anecdote ou un message ambigu reste A_VERIFIER (constat réel du 2026-10-17).
-    if (!prestationProposee && (classe === "DEMANDE_CONFIRMEE" || classe === "DEMANDE_PROBABLE")) {
-      classe = "HORS_PRESTATION";
-      categorieFinale = "HORS_PRESTATION";
-      raisonFinale = config.plomberie.prospectsActifs
-        ? "plomberie : prestation non assurée par l'entreprise"
-        : "plomberie : activité non proposée comme prospect pour l'instant";
+    const vraieDemande = ["DEMANDE_CONFIRMEE", "DEMANDE_PROBABLE", "DEMANDE_DEVIS", "RECHERCHE_PRO"].includes(classe);
+    if (!prestationProposee && vraieDemande) {
+      if (familleProposee) {
+        classe = "PRESTATION_A_CONFIRMER";
+        categorieFinale = "PRESTATION_A_CONFIRMER";
+        raisonFinale = "plomberie (débouchage) : prestation assurée mais pas encore activée comme prospect";
+      } else {
+        classe = "HORS_PRESTATION";
+        categorieFinale = "HORS_PRESTATION";
+        raisonFinale = "plomberie : prestation non assurée par l'entreprise";
+      }
     }
   }
 
@@ -394,6 +486,8 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
     categorieRaison: raisonFinale,
     classe,
     urgente,
+    niveauUrgence,
+    niveauUrgenceRaison,
     metier,
     plomberie: plumbing,
     prestationProposee,

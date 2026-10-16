@@ -44,6 +44,8 @@ async function main() {
       categorie: q.categorie,
       categorieRaison: q.categorieRaison,
       urgente: q.urgente,
+      niveauUrgence: q.niveauUrgence,
+      niveauUrgenceRaison: q.niveauUrgenceRaison,
       metier: q.metier,
       prestationProposee: q.prestationProposee,
       classeBrute: q.classeBrute,

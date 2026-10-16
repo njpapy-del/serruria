@@ -239,7 +239,8 @@ class FetcherTest(unittest.TestCase):
 
 class NotifyTest(unittest.TestCase):
     def test_objet_au_format_attendu(self):
-        self.assertEqual(lead_subject(result()), "[LEAD RADAR] [URGENT] Porte claquée — Aubervilliers (93)")
+        self.assertEqual(lead_subject({**result(), "niveauUrgence": "ELEVEE"}), "[LEAD RADAR] URGENT — Porte claquée — Aubervilliers (93)")
+        self.assertEqual(lead_subject({**result(), "niveauUrgence": "DEVIS"}), "[LEAD RADAR] Porte claquée — Aubervilliers (93)")
 
     def test_bloque_l_ancien_numero(self):
         m = Mailer("k", "radar@x.test", ["a@x.test"])
@@ -412,6 +413,85 @@ class PlomberieEtCadenceTest(unittest.TestCase):
         self.assertTrue(plomb)
         self.assertLess(len(plomb), len(qs) / 2)
         self.assertNotIn("wc bouché", Q.broad_queries(include_plomberie=False))
+
+
+class NotificationReliabilityTest(unittest.TestCase):
+    def mailer(self, responses):
+        return Mailer("k", "radar@x.test", ["a@x.test"], http_kwargs={"opener": opener_for(responses), "sleep": lambda s: None})
+
+    def test_echecs_types(self):
+        cases = [(401, "permanent", "auth"), (403, "permanent", "auth"), (422, "refused", "invalid"), (429, "temporary", "quota")]
+        for status, kind, code in cases:
+            with self.assertRaises(NotifyError) as c:
+                self.mailer([http_error(status)] * 3).send("s", "t", "k")
+            self.assertEqual((c.exception.kind, c.exception.code), (kind, code), status)
+
+    def test_erreur_temporaire_retentee_puis_acceptee(self):
+        m = self.mailer([http_error(503), FakeRes(body=b'{"id":"m1"}')])
+        self.assertEqual(m.send("s", "t", "k"), "m1")
+
+    def test_tentatives_limitees(self):
+        op = opener_for([http_error(503)] * 10)
+        m = Mailer("k", "radar@x.test", ["a@x.test"], http_kwargs={"opener": op, "sleep": lambda s: None})
+        with self.assertRaises(NotifyError):
+            m.send("s", "t", "k")
+        self.assertEqual(len(op.calls), 3)
+
+    def test_reponse_sans_identifiant_n_est_pas_un_succes(self):
+        with self.assertRaises(NotifyError):
+            self.mailer([FakeRes(body=b"{}")]).send("s", "t", "k")
+
+    def test_etat_de_livraison(self):
+        m = self.mailer([FakeRes(body=b'{"id":"m1"}'), FakeRes(body=b'{"last_event":"delivered"}')])
+        m.send("s", "t", "k")
+        self.assertEqual(m.check_deliveries(wait_seconds=0, sleep=lambda s: None), {"delivered": 1})
+        m2 = self.mailer([FakeRes(body=b'{"id":"m2"}'), http_error(500)])
+        m2.send("s", "t", "k")
+        self.assertEqual(m2.check_deliveries(wait_seconds=0, sleep=lambda s: None), {"unknown": 1})
+
+
+class HealthTest(unittest.TestCase):
+    def run_health(self, collected, results=None):
+        rep = run_once(mode="assiste", cfg=CFG, state=State(Path("/dev/null")), env={}, now=NOW, mailer=FakeMailer(),
+                       collected=collected, qualify_fn=fake_qualify(results or {}))
+        return rep
+
+    def item(self, t):
+        return RawItem("bluesky", t, f"https://exemple.invalid/{t}", "", t, NOW)
+
+    def test_etats_distincts(self):
+        self.assertEqual(self.run_health({}).health, "AUCUNE_SOURCE_CONSULTEE")
+        self.assertEqual(self.run_health({"bluesky": SourceResult("bluesky", queries=["q"])}).health, "RECHERCHE_REUSSIE_SANS_RESULTAT")
+        self.assertEqual(self.run_health({"bluesky": SourceResult("bluesky", queries=["q"], errors=["network"])}).health, "RECHERCHE_ECHOUEE")
+        rep = self.run_health({"bluesky": SourceResult("bluesky", queries=["q"], items=[self.item("A")])}, {"A": result("NON_PERTINENT", key="id:a")})
+        self.assertEqual(rep.health, "AUCUNE_DEMANDE_PERTINENTE")
+        rep = self.run_health({"bluesky": SourceResult("bluesky", queries=["q"], items=[self.item("B")])}, {"B": result(key="id:b")})
+        self.assertEqual(rep.health, "DEMANDES_TROUVEES")
+        rep = self.run_health({"bluesky": SourceResult("bluesky", queries=["q"], items=[self.item("C")], errors=["timeout"])}, {"C": result(key="id:c")})
+        self.assertEqual(rep.health, "RECHERCHE_PARTIELLE")
+
+    def test_notification_impossible_signalee(self):
+        rep = run_once(mode="assiste", cfg=CFG, state=State(Path("/dev/null")), env={}, now=NOW, mailer=FakeMailer(fail=True),
+                       collected={"bluesky": SourceResult("bluesky", queries=["q"], items=[self.item("A")])}, qualify_fn=fake_qualify({"A": result()}))
+        self.assertTrue(rep.notification_impossible)
+        self.assertEqual(rep.notif["permanent"], 1)
+
+    def test_devis_et_recherche_pro_notifies_mais_regroupes(self):
+        mailer = FakeMailer()
+        items = [self.item("D"), self.item("R")]
+        res = {"D": {**result("DEMANDE_DEVIS", key="id:d"), "niveauUrgence": "DEVIS"}, "R": {**result("RECHERCHE_PRO", key="id:r"), "niveauUrgence": "NON_URGENTE"}}
+        rep = run_once(mode="assiste", cfg=CFG, state=State(Path("/dev/null")), env={}, now=NOW, mailer=mailer,
+                       collected={"bluesky": SourceResult("bluesky", queries=["q"], items=items)}, qualify_fn=fake_qualify(res))
+        self.assertEqual(rep.notifications_sent, 2)
+        self.assertEqual(len([s for s, _, _ in mailer.sent if "demande(s) à examiner" in s]), 1)
+
+    def test_prestation_a_confirmer_jamais_notifiee(self):
+        mailer = FakeMailer()
+        r = {**result(key="id:pac"), "classe": "PRESTATION_A_CONFIRMER", "classeBrute": "DEMANDE_CONFIRMEE", "metier": "plomberie"}
+        rep = run_once(mode="assiste", cfg=CFG, state=State(Path("/dev/null")), env={}, now=NOW, mailer=mailer,
+                       collected={"bluesky": SourceResult("bluesky", queries=["q"], items=[self.item("P")])}, qualify_fn=fake_qualify({"P": r}))
+        self.assertEqual(rep.notifications_sent, 0)
+        self.assertEqual(rep.by_metier["plomberie"]["a_confirmer"], 1)
 
 
 class EndToEndQualifyTest(unittest.TestCase):

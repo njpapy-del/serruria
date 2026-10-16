@@ -1,27 +1,59 @@
 """Notifications e-mail via Resend (déjà utilisé par le site).
 
-- Un prospect n'est notifié qu'une fois (empreinte dans l'état + clé
-  d'idempotence Resend).
+- Un prospect n'est notifié qu'une fois (empreinte dans l'état pour les sources
+  qui l'autorisent + clé d'idempotence Resend).
 - Le numéro proposé est vérifié avant tout envoi : jamais l'ancien numéro.
-- Une erreur d'envoi est remontée, et le prospect n'est PAS marqué notifié
-  (il sera retenté au passage suivant).
+- Les échecs sont typés (refus, erreur temporaire, erreur permanente) et le
+  prospect n'est PAS marqué notifié en cas d'échec.
+- « Accepté par Resend » ne veut pas dire « reçu » : l'état de livraison est
+  vérifié ensuite via l'API Resend quand c'est possible.
 """
 
 from __future__ import annotations
 
 import json
 import re
+import time
 from dataclasses import dataclass
 
-from .http import HttpError, request_with_retry
+from .http import HttpError, request, request_with_retry
 
 RESEND_ENDPOINT = "https://api.resend.com/emails"
 FORBIDDEN_PHONE = re.compile(r"0?7[\s.]?54[\s.]?47[\s.]?12[\s.]?50")
-EXPECTED_PHONE = "01 85 50 02 70"
+
+# Événements Resend (last_event) → état lisible.
+DELIVERY_STATES = {
+    "delivered": "remis",
+    "sent": "envoyé (remise non confirmée)",
+    "queued": "en file d'attente",
+    "scheduled": "programmé",
+    "delivery_delayed": "remise retardée",
+    "bounced": "rejeté par le destinataire",
+    "complained": "signalé comme spam",
+    "failed": "échec",
+}
 
 
 class NotifyError(Exception):
-    pass
+    """kind : refused | permanent | temporary | blocked."""
+
+    def __init__(self, message: str, kind: str = "permanent", code: str | None = None):
+        super().__init__(message)
+        self.kind = kind
+        self.code = code
+
+
+def _diagnose(exc: HttpError) -> NotifyError:
+    status = exc.status
+    if status in (401, 403):
+        return NotifyError("Resend : clé API refusée ou sans droit d'envoi (configuration)", "permanent", "auth")
+    if status == 422:
+        return NotifyError("Resend : requête refusée (adresse destinataire ou expéditeur/domaine invalide)", "refused", "invalid")
+    if status == 429 or exc.code == "quota":
+        return NotifyError("Resend : quota ou limite de débit atteint", "temporary", "quota")
+    if exc.retryable:
+        return NotifyError(f"Resend : erreur temporaire ({exc.code} {status or ''})".strip(), "temporary", exc.code)
+    return NotifyError(f"Resend : erreur {exc.code} {status or ''}".strip(), "permanent", exc.code)
 
 
 @dataclass
@@ -30,6 +62,7 @@ class Mailer:
     sender: str
     recipients: list[str]
     http_kwargs: dict | None = None
+    sent_ids: list[str] | None = None
 
     @classmethod
     def from_env(cls, env: dict) -> "Mailer | None":
@@ -41,10 +74,12 @@ class Mailer:
         return cls(key, sender, to)
 
     def send(self, subject: str, text: str, idempotency_key: str) -> str:
+        """Renvoie l'identifiant Resend si la requête est ACCEPTÉE. Lève NotifyError sinon."""
         if FORBIDDEN_PHONE.search(text) or FORBIDDEN_PHONE.search(subject):
-            raise NotifyError("ancien numéro détecté dans la notification : envoi bloqué")
+            raise NotifyError("ancien numéro détecté dans la notification : envoi bloqué", "blocked", "old_phone")
         body = json.dumps({"from": self.sender, "to": self.recipients, "subject": subject, "text": text}).encode()
         try:
+            # 3 tentatives maximum, uniquement sur erreurs temporaires (réseau, 429, 5xx).
             res = request_with_retry(
                 RESEND_ENDPOINT,
                 method="POST",
@@ -57,8 +92,38 @@ class Mailer:
                 **(self.http_kwargs or {}),
             )
         except HttpError as exc:
-            raise NotifyError(f"Resend : {exc.code} {exc.status or ''}".strip()) from exc
-        return str(res.json().get("id", ""))
+            raise _diagnose(exc) from exc
+        message_id = str(res.json().get("id", ""))
+        if not message_id:
+            raise NotifyError("Resend : réponse sans identifiant de message", "permanent", "no_id")
+        if self.sent_ids is None:
+            self.sent_ids = []
+        self.sent_ids.append(message_id)
+        return message_id
+
+    def delivery_state(self, message_id: str) -> str:
+        """Dernier événement connu chez Resend (delivered, bounced…) ou 'unknown'."""
+        try:
+            res = request(
+                f"{RESEND_ENDPOINT}/{message_id}",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                **{k: v for k, v in (self.http_kwargs or {}).items() if k == "opener"},
+            )
+            return str(res.json().get("last_event") or "unknown")
+        except HttpError:
+            return "unknown"
+
+    def check_deliveries(self, wait_seconds: float = 8.0, sleep=time.sleep) -> dict[str, int]:
+        """Compte les états de livraison des messages envoyés pendant ce passage."""
+        ids = self.sent_ids or []
+        if not ids:
+            return {}
+        sleep(wait_seconds)
+        counts: dict[str, int] = {}
+        for mid in ids:
+            state = self.delivery_state(mid)
+            counts[state] = counts.get(state, 0) + 1
+        return counts
 
 
 def _loc(r: dict) -> tuple[str, str]:
@@ -70,13 +135,22 @@ def _loc(r: dict) -> tuple[str, str]:
     return f"Département {loc['departement']}", f"({loc['departement']})"
 
 
+NIVEAUX = {
+    "ELEVEE": "URGENCE ÉLEVÉE (d'après le texte publié)",
+    "RAPIDE": "intervention souhaitée rapidement",
+    "NON_URGENTE": "non urgente",
+    "DEVIS": "demande de devis",
+}
+
+
 def lead_subject(r: dict) -> str:
     besoin = (r.get("services") or ["Serrurerie"])[0]
     besoin = "Besoin de serrurier" if besoin.startswith("Besoin de serrurier") else besoin
     _, short = _loc(r)
-    urgent = " [URGENT]" if r.get("urgente") else ""
+    niveau = r.get("niveauUrgence") or ("ELEVEE" if r.get("urgente") else "NON_URGENTE")
+    prefix = "[LEAD RADAR] URGENT — " if niveau == "ELEVEE" else "[LEAD RADAR] "
     lieu = f" — {short}" if short else ""
-    return f"[LEAD RADAR]{urgent} {besoin}{lieu}"
+    return f"{prefix}{besoin}{lieu}"
 
 
 def lead_body(r: dict, item, *, source_nom: str, detected_at: str, with_response: bool) -> str:
@@ -84,10 +158,11 @@ def lead_body(r: dict, item, *, source_nom: str, detected_at: str, with_response
     lignes = "\n".join(f"  - {l['critere']} : {l['points']}/{l['max']} — {l['raison']}" for l in r.get("lignes", []))
     excerpt = (f"{item.title} — {item.content}" if item.title else item.content).strip()
     excerpt = excerpt[:600] + ("…" if len(excerpt) > 600 else "")
+    niveau = r.get("niveauUrgence")
     parts = [
         f"Type de demande : {', '.join(r.get('services') or ['non précisé'])}",
         f"Classe : {r['classe']} — {r['categorie']} ({r['categorieRaison']})",
-        f"Urgence : {'OUI' if r.get('urgente') else 'non exprimée'}",
+        f"Niveau d'urgence : {NIVEAUX.get(niveau, 'non évalué')}" + (f" — {r['niveauUrgenceRaison']}" if r.get("niveauUrgenceRaison") else ""),
         f"Score de pertinence : {r['score']}/100 (classement interne, pas une probabilité de conversion)",
         lignes,
         "",
@@ -101,6 +176,7 @@ def lead_body(r: dict, item, *, source_nom: str, detected_at: str, with_response
         f"« {excerpt} »",
         "",
         "Vérification humaine nécessaire : OUI — rien n'a été publié ni envoyé à cette personne.",
+        "Disponibilité et zone à confirmer avant de proposer une intervention.",
     ]
     if with_response and r.get("reponseProposee"):
         parts += ["", "Réponse proposée (à publier vous-même si la plateforme l'autorise) :", r["reponseProposee"]]

@@ -6,13 +6,26 @@ publications publiques, les qualifie avec le moteur TypeScript du site
 Bibliothèque standard Python 3.12 uniquement ; Node 22+ et `npm ci` à la racine
 pour le moteur de qualification.
 
-## Ce qui fonctionne réellement (vérifié le 2026-10-16)
+## Ce qui fonctionne réellement (vérifié les 16 et 17/10/2026)
 
 | Source | État | Test réel |
 |---|---|---|
-| Bluesky (API publique officielle) | ✅ Active | 16 requêtes, 50 publications analysées sur 30 jours, 0 erreur, **0 demande de serrurier en IDF trouvée** |
-| Alertes RSS (Google Alerts, Talkwalker) | ⏸ En attente | Code testé sur flux d'exemple ; aucun flux fourni (`RADAR_RSS_FEEDS`) |
-| Brave Search API | 🔒 Désactivée | Exige accord du propriétaire (carte bancaire), clé et budget > 0 |
+| Bluesky (API publique officielle) | ✅ Chaque passage | 17/10 00 h 00 : 25 requêtes, 119 messages, 0 erreur, **0 demande réelle** (serrurerie ou plomberie) |
+| Brave Search API | ✅ 4 créneaux/jour (8 h, 12 h, 16 h, 20 h), passages planifiés uniquement | 16/10 : 6 requêtes, 33 résultats, 0,03 $ ; uniquement concurrents, annuaires et articles |
+| Alertes RSS (Google Alerts, Talkwalker) | ⏸ En attente | Aucun flux fourni (`RADAR_RSS_FEEDS`) |
+
+**Métiers.** Serrurerie : prospects notifiés. Plomberie : catalogue distinct,
+demandes **détectées et comptées** (classe `HORS_PRESTATION`), jamais notifiées
+ni suivies d'une réponse (décision du 16/10/2026 ; seul le débouchage est assuré).
+
+**Cadence.** Planification horaire GitHub Actions (`7 * * * *`). Les tâches
+planifiées GitHub sont « au mieux » : mesuré le 16/10 avec `*/30`, 2 passages en
+3 h (écart 164 min). La synthèse quotidienne indique les heures réelles et les écarts.
+
+**Dépense Brave.** Aucun plafond côté Brave au-delà du crédit gratuit de 5 $/mois.
+Borne garantie sans dépendre de l'état : uniquement lors des passages planifiés
+(`RADAR_ALLOW_PAID`), au plus 1 par heure, dans 4 créneaux d'une heure, 6 requêtes
+chacun → ≤ 744 requêtes/mois ≈ 3,72 $. Aucun résultat Brave n'est conservé.
 
 Aucune publication automatique n'existe dans l'agent. Les messages privés ne
 sont jamais envoyés.

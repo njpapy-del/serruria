@@ -73,7 +73,7 @@ const URGENT_TEMPLATES: ((c: Ctx) => string)[] = [
   (c) =>
     `Bonjour, si vous avez toujours besoin d'un serrurier${c.lieu}, vous pouvez joindre ${c.brand} au ${c.phone}. Décrivez votre situation et nous vérifions ensemble si nous pouvons intervenir.`,
   (c) =>
-    `Bonjour, ${c.brand} propose des dépannages de serrurerie en Île-de-France. Pour « ${c.besoin.toLowerCase()} »${c.lieu}, le plus simple est de nous appeler au ${c.phone} pour vérifier la disponibilité.`,
+    `Bonjour, ${c.brand} peut vous accompagner pour votre dépannage${c.lieu} en Île-de-France, selon la prestation et la zone d'intervention. Appelez le ${c.phone} pour nous expliquer votre situation et vérifier les possibilités d'intervention.`,
 ];
 
 const STANDARD_TEMPLATES: ((c: Ctx) => string)[] = [

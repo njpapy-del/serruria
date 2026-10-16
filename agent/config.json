@@ -34,7 +34,9 @@
   ],
   "notify_classes": [
     "DEMANDE_CONFIRMEE",
-    "DEMANDE_PROBABLE"
+    "DEMANDE_PROBABLE",
+    "DEMANDE_DEVIS",
+    "RECHERCHE_PRO"
   ],
   "notify_min_score": 45,
   "max_items_per_email_batch": 10,
@@ -89,5 +91,6 @@
   "metiers": {
     "_doc": "Plomberie : détectée et comptée, jamais proposée (décision du 2026-10-16). Seul le débouchage est assuré.",
     "plomberie_recherche": true
-  }
+  },
+  "delivery_check_seconds": 8
 }

@@ -14,7 +14,7 @@ on:
       mode:
         description: "Mode d'exécution"
         type: choice
-        options: [assiste, surveillance, test]
+        options: [assiste, surveillance, test, resend-check]
         default: assiste
 
 permissions:

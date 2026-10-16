@@ -344,13 +344,17 @@ describe("plomberie (catalogue distinct, non proposée comme prospect)", () => {
     expect(first).toMatchObject({ id, famille });
   });
 
-  it("une vraie demande de plomberie est classée HORS_PRESTATION, sans réponse", () => {
+  it("un débouchage (prestation assurée, non activée) est PRESTATION_A_CONFIRMER, sans réponse", () => {
     const q = qualify(item("Je cherche un plombier en urgence à Créteil", "WC bouché, ça déborde"), bsky, config, NOW);
     expect(q.metier).toBe("plomberie");
-    expect(q.classe).toBe("HORS_PRESTATION");
+    expect(q.classe).toBe("PRESTATION_A_CONFIRMER");
     expect(q.classeBrute).toBe("DEMANDE_CONFIRMEE");
     expect(q.prestationProposee).toBe(false);
     expect(decideAction(q, bsky, { ...DEFAULT_SOURCE_SETTINGS, mode: "assiste" }, {}).action).toBe("aucune");
+  });
+
+  it("une fuite (prestation non assurée) est HORS_PRESTATION", () => {
+    expect(qualify(item("Je cherche un plombier à Créteil", "fuite d'eau sous l'évier"), bsky, config, NOW).classe).toBe("HORS_PRESTATION");
   });
 
   it("si la plomberie est activée, seul le débouchage devient un prospect", () => {
@@ -378,5 +382,33 @@ describe("plomberie (catalogue distinct, non proposée comme prospect)", () => {
 
   it("un article de conseil en plomberie reste informatif", () => {
     expect(qualify(item("WC bouché : les bons gestes", "Astuce : bicarbonate et vinaigre"), bsky, config, NOW).classe).toBe("CONTENU_INFORMATIF");
+  });
+});
+
+describe("niveaux d'urgence et types de demande", () => {
+  const bsky = getSource("bluesky")!;
+  it.each([
+    ["Je cherche un serrurier à Créteil", "bloqué dehors avec mon bébé à l'intérieur", "ELEVEE"],
+    ["Je cherche un serrurier à Créteil", "clé cassée, il faudrait passer aujourd'hui", "RAPIDE"],
+    ["Je cherche un serrurier à Créteil", "porte claquée", "RAPIDE"],
+    ["Je cherche un serrurier à Créteil", "devis pour changer la serrure", "DEVIS"],
+    ["Je cherche un serrurier à Créteil", "changer le cylindre le mois prochain", "NON_URGENTE"],
+  ])("%s / %s → %s", (t, c, niveau) => {
+    expect(qualify(item(t, c), bsky, config, NOW).niveauUrgence).toBe(niveau);
+  });
+
+  it("distingue demande d'intervention, devis et recherche d'un professionnel", () => {
+    expect(qualify(item("Je cherche un serrurier à Créteil", "porte claquée"), bsky, config, NOW).classe).toBe("DEMANDE_CONFIRMEE");
+    expect(qualify(item("Je cherche un serrurier à Créteil", "devis pour changer la serrure"), bsky, config, NOW).classe).toBe("DEMANDE_DEVIS");
+    expect(qualify(item("Quelqu'un connaît un bon serrurier à Créteil ?", ""), bsky, config, NOW).classe).toBe("RECHERCHE_PRO");
+  });
+
+  it.each([
+    ["ma clé est cassée dans la serrure", "cle_cassee"],
+    ["la serrure est cassée", "serrure_bloquee"],
+    ["mes clés sont restées à l'intérieur", "porte_claquee"],
+    ["porte impossible à ouvrir", "porte_bloquee"],
+  ])("variante « %s » → %s", (text, id) => {
+    expect(detectServices(normalize(text))[0].id).toBe(id);
   });
 });
