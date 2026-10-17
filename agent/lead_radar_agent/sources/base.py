@@ -42,6 +42,7 @@ class SourceResult:
     lieux: list[str] = field(default_factory=list)
     """Lieux ciblés par les requêtes de ce passage (couverture géographique)."""
     not_configured: bool = False
+    duration_ms: int | None = None
 
 
 class SourceDisabled(Exception):

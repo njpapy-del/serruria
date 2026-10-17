@@ -18,7 +18,7 @@ MAX_BYTES = 2_000_000
 
 
 class HttpError(Exception):
-    """code : network | timeout | http | quota | parse | too_large."""
+    """code : auth | network | timeout | http | quota | parse | too_large."""
 
     def __init__(self, message: str, code: str, status: int | None = None, retryable: bool = False):
         super().__init__(message)
@@ -76,6 +76,8 @@ def request(
         status = exc.code
         if status == 429:
             raise HttpError("Quota atteint (HTTP 429).", "quota", status, retryable=True) from exc
+        if status in (401, 403):
+            raise HttpError(f"Authentification ou accès refusé (HTTP {status}).", "auth", status) from exc
         raise HttpError(f"Réponse HTTP {status}.", "http", status, retryable=status >= 500) from exc
     except TimeoutError as exc:
         raise HttpError("Délai dépassé.", "timeout", retryable=True) from exc

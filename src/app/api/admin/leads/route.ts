@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { list, del } from "@vercel/blob";
+import { list, del, get } from "@vercel/blob";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 
 export async function GET() {
@@ -15,6 +15,12 @@ export async function GET() {
     const { blobs } = await list({ prefix: "leads/" });
     const leads = await Promise.all(
       blobs.map(async (blob) => {
+        // Store privé : lecture authentifiée côté serveur ; store public : URL directe.
+        if (process.env.LEADS_BLOB_ACCESS === "private") {
+          const file = await get(blob.pathname, { access: "private", useCache: false });
+          const text = file ? await new Response(file.stream).text() : "{}";
+          return { ...JSON.parse(text), url: blob.url };
+        }
         const res = await fetch(blob.url, { cache: "no-store" });
         const data = await res.json();
         return { ...data, url: blob.url };

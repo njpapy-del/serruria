@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import statistics
+import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, time as dtime, timedelta
@@ -22,6 +23,8 @@ from .qualify import QualifyError, qualify
 from .sources import bluesky, brave, rss
 from .sources.base import RawItem, SourceDisabled, SourceNotConfigured, SourceResult
 from .state import State
+
+_clock = time.monotonic
 
 LEAD_CLASSES_DEFAULT = ("DEMANDE_CONFIRMEE", "DEMANDE_PROBABLE", "DEMANDE_DEVIS", "RECHERCHE_PRO")
 SOURCE_NAMES = {"bluesky": "Bluesky (API publique officielle)", "alertes_rss": "Alertes web (RSS)", "brave_search": "Brave Search API"}
@@ -62,6 +65,7 @@ class Report:
     summary_sent: bool = False
     outside_hours: bool = False
     notification_impossible: bool = False
+    config_source: str = "local"
     # Opportunités conservables (jamais Brave) pour le tableau de bord ; hors journal public.
     opportunities: list[dict] = field(default_factory=list)
 
@@ -91,6 +95,7 @@ class Report:
             "delivery": self.delivery,
             "notification_errors": self.notification_errors,
             "daily_summary_sent": self.summary_sent,
+            "config_source": self.config_source,
         }
 
     def public_log(self) -> str:
@@ -193,6 +198,21 @@ def _source_status(entry: dict) -> str:
     return "SUCCESS_WITH_LEADS" if entry["relevant"] > 0 else "SUCCESS_NO_RELEVANT_LEADS"
 
 
+def _error_kind(codes: list[str], status: str, results: int) -> str:
+    """Nature lisible : authentification, réseau, quota, aucun résultat, etc."""
+    if "auth" in codes:
+        return "authentification"
+    if "quota" in codes:
+        return "quota_depasse"
+    if any(c in ("network", "timeout") for c in codes):
+        return "reseau"
+    if codes:
+        return "erreur_source"
+    if status == "SUCCESS_NO_RESULTS":
+        return "aucun_resultat"
+    return "aucune"
+
+
 def _run_status(report: Report) -> str:
     statuses = [s["status"] for s in report.sources.values()]
     if report.notif["generated"] and report.notif["accepted"] < report.notif["generated"]:
@@ -267,7 +287,9 @@ def run_once(
                 report.sources[sid] = empty_entry("SOURCE_NOT_RUN", "intervalle minimal non écoulé")
                 continue
             try:
+                t0 = _clock()
                 results[sid] = collect(sid, scfg, cfg, state, env, now, http_kwargs)
+                results[sid].duration_ms = int((_clock() - t0) * 1000)
             except SourceNotConfigured as exc:
                 report.sources[sid] = empty_entry("SOURCE_NOT_CONFIGURED", str(exc))
             except SourceDisabled as exc:
@@ -288,6 +310,7 @@ def run_once(
             cost_usd=round(cost, 4),
             queries=res.queries,
             lieux_couverts=len(set(res.lieux)),
+            duration_ms=getattr(res, "duration_ms", None),
         )
         if res.skipped_reason:
             entry["reason"] = res.skipped_reason
@@ -375,6 +398,7 @@ def run_once(
             if delays:
                 entry["delai_publication_detection_min"] = {"median": round(statistics.median(delays)), "max": round(max(delays))}
         entry["status"] = _source_status(entry)
+        entry["error_kind"] = _error_kind(entry["error_codes"], entry["status"], entry["results"])
 
     # 3. Alertes : un e-mail par nouvelle demande pertinente, dès la qualification.
     persist_of = {sid: cfg.get("sources", {}).get(sid, {}).get("persist_results", True) for sid in results}
@@ -385,6 +409,9 @@ def run_once(
         report.notification_errors.append("notifications non configurées (RESEND_API_KEY / LEAD_RADAR_*)")
         report.notification_impossible = True
         report.notif["generated"] += len(pending)
+    if mailer is not None and cfg.get("alerts_enabled") is False:
+        report.notification_errors.append("alertes désactivées par l'administrateur")
+        pending = []
     if mailer is not None:
         # Les plus urgents d'abord.
         order = {"ELEVEE": 0, "RAPIDE": 1, "DEVIS": 2, "NON_URGENTE": 3}

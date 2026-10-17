@@ -33,7 +33,10 @@ export function isValidSessionToken(token: string | undefined): boolean {
   if (!token) return false;
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return false;
-  if (sign(payload) !== signature) return false;
+  // Comparaison en temps constant (ne révèle pas la signature attendue par le temps de réponse).
+  const expected = Buffer.from(sign(payload));
+  const given = Buffer.from(signature);
+  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return false;
   return Number(payload) > Date.now();
 }
 

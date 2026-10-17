@@ -73,8 +73,10 @@ export async function POST(request: Request) {
       // que cette URL n'est jamais exposée publiquement sur le site : seule
       // la route admin (protégée par mot de passe) liste/lit ces fichiers,
       // via le token serveur, jamais par lien direct.
+      // LEADS_BLOB_ACCESS=private : à utiliser avec un store Blob créé en mode
+      // privé (le mode d'accès d'un store est fixé à sa création chez Vercel).
       await put(`leads/${id}.json`, JSON.stringify(lead), {
-        access: "public",
+        access: process.env.LEADS_BLOB_ACCESS === "private" ? "private" : "public",
         addRandomSuffix: true,
         contentType: "application/json",
       });

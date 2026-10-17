@@ -116,11 +116,16 @@ def main(argv: list[str] | None = None) -> int:
         report = run_once(mode="test", cfg=cfg, state=state, env=env, now=now, mailer=mailer, collected=_fixture_results())
     else:
         state = State.load(args.state)
+        from .settings import load_remote
+
+        cfg, config_source = load_remote(cfg, env)
         report = run_once(mode=args.mode, cfg=cfg, state=state, env=env, now=now, mailer=mailer)
+        report.config_source = config_source
         state.save()
         from .ingest import push
 
-        ingest_status = push(env, report)
+        ingest_status = push(env, report, state)
+        state.save()
         if ingest_status.startswith("error"):
             print(f"Tableau de bord : envoi impossible ({ingest_status})", file=sys.stderr)
         heartbeat(env, report.status)

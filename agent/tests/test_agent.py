@@ -172,7 +172,7 @@ class SourcesTest(unittest.TestCase):
 
     def test_bluesky_erreur_n_est_pas_un_succes_vide(self):
         res = bluesky.search(["x"], now=NOW, lookback_hours=6, opener=opener_for([http_error(403)]), sleep=lambda s: None)
-        self.assertEqual(res.errors, ["http"])
+        self.assertEqual(res.errors, ["auth"])  # 403 = accès refusé, distingué d'une erreur réseau
         self.assertEqual(res.items, [])
 
     def test_rss_google_alerts_et_rss2(self):
@@ -598,10 +598,12 @@ class IngestTest(unittest.TestCase):
                        qualify_fn=fake_qualify({"B": result(key="id:b1"), "R": result(key="url:r")}))
         self.assertEqual([o["source_id"] for o in rep.opportunities], ["bluesky"])
         op = opener_for([FakeRes(body=b'{"ok":true}')])
-        self.assertEqual(push({"RADAR_INGEST_URL": "https://site.test/api/radar/ingest", "RADAR_INGEST_TOKEN": "t" * 40}, rep, opener=op), "ok")
+        self.assertEqual(push({"RADAR_INGEST_URL": "https://site.test/api/radar/ingest", "RADAR_INGEST_TOKEN": "t" * 40}, rep, opener=op), "ok:1")
         sent = json.loads(op.calls[0].data)
         self.assertEqual([o["source_id"] for o in sent["opportunities"]], ["bluesky"])
-        self.assertNotIn("queries", json.dumps(sent["run"]["sources"]))
+        # Nos requêtes (texte que nous avons écrit) sont transmises pour le journal ;
+        # aucun RÉSULTAT Brave (URL, titre, extrait) ne l'est.
+        self.assertEqual(sent["run"]["sources"]["bluesky"]["queries"], ["q"])
         self.assertNotIn("exemple.invalid", json.dumps(sent))
         self.assertEqual(op.calls[0].get_header("Authorization"), "Bearer " + "t" * 40)
 
@@ -611,6 +613,87 @@ class IngestTest(unittest.TestCase):
         rep = run_once(mode="assiste", cfg=CFG, state=State(Path("/dev/null")), env={}, now=NOW, mailer=None, collected={}, qualify_fn=fake_qualify({}))
         self.assertEqual(push({}, rep), "not_configured")
         self.assertTrue(push({"RADAR_INGEST_URL": "https://site.test/i", "RADAR_INGEST_TOKEN": "t"}, rep, opener=opener_for([http_error(503)] * 3), sleep=lambda s: None).startswith("error"))
+
+
+class IngestQueueTest(unittest.TestCase):
+    def setUp(self):
+        from lead_radar_agent.ingest import push
+
+        self.push = push
+        self.state = State(Path("/dev/null"))
+        item = RawItem("bluesky", "q1", "https://bsky.app/profile/x.test/post/1", "", "Q", NOW)
+        self.rep = run_once(mode="assiste", cfg=CFG, state=self.state, env={}, now=NOW, mailer=FakeMailer(),
+                            collected={"bluesky": SourceResult("bluesky", queries=["q"], items=[item])}, qualify_fn=fake_qualify({"Q": result(key="id:q1")}))
+        self.env = {"RADAR_INGEST_URL": "https://site.test/api/radar/ingest", "RADAR_INGEST_TOKEN": "t" * 40}
+
+    def test_file_de_renvoi_sans_donnees_hors_serveur(self):
+        st = self.push(self.env, self.rep, self.state, opener=opener_for([http_error(503)] * 3), sleep=lambda s: None)
+        self.assertTrue(st.startswith("error:http:503"))
+        q = self.state.data["ingest_queue"]
+        self.assertEqual(len(q), 1)
+        self.assertEqual(q[0]["opportunities"], [])  # pas de lien conservé dans un état public
+
+    def test_file_avec_opportunites_sur_serveur_prive_puis_renvoi(self):
+        env = {**self.env, "RADAR_PRIVATE_STATE": "true"}
+        self.push(env, self.rep, self.state, opener=opener_for([http_error(503)] * 3), sleep=lambda s: None)
+        self.assertEqual(len(self.state.data["ingest_queue"][0]["opportunities"]), 1)
+        op = opener_for([FakeRes(body=b"{}"), FakeRes(body=b"{}")])
+        self.assertEqual(self.push(env, self.rep, self.state, opener=op), "ok:2")  # ancien + nouveau
+        self.assertEqual(self.state.data["ingest_queue"], [])
+
+    def test_erreur_d_authentification_distincte(self):
+        st = self.push(self.env, self.rep, self.state, opener=opener_for([http_error(401)]))
+        self.assertEqual(st, "error:auth:401")
+
+
+class SettingsTest(unittest.TestCase):
+    def test_reglages_valides_appliques_invalides_ignores(self):
+        from lead_radar_agent.settings import apply_settings
+
+        cfg, ignored = apply_settings(CFG, {
+            "sources_enabled": {"brave_search": False, "inconnue": True},
+            "bluesky_min_interval_minutes": 15,
+            "brave_max_queries_per_day": 500,
+            "departements": ["93", "94"],
+            "notify_min_score": 60,
+            "notify_classes": ["DEMANDE_CONFIRMEE", "PIRATE"],
+            "alerts_enabled": False,
+        })
+        self.assertFalse(cfg["sources"]["brave_search"]["enabled"])
+        self.assertEqual(cfg["sources"]["bluesky"]["min_interval_minutes"], 15)
+        self.assertEqual(cfg["sources"]["brave_search"]["max_queries_per_day"], CFG["sources"]["brave_search"]["max_queries_per_day"])
+        self.assertEqual(cfg["departements"], ["93", "94"])
+        self.assertFalse(cfg["alerts_enabled"])
+        self.assertEqual(set(ignored), {"sources_enabled.inconnue", "brave_max_queries_per_day", "notify_classes"})
+        self.assertEqual(CFG["sources"]["bluesky"]["min_interval_minutes"], 10)  # original intact
+
+    def test_repli_local_journalise(self):
+        from lead_radar_agent.settings import load_remote
+
+        cfg, src = load_remote(CFG, {})
+        self.assertEqual(src, "local:non_configure")
+        env = {"RADAR_INGEST_URL": "https://site.test/api/radar/ingest", "RADAR_INGEST_TOKEN": "t"}
+        cfg, src = load_remote(CFG, env, opener=opener_for([http_error(503)]))
+        self.assertEqual(src, "local:site_indisponible:http:503")
+        cfg, src = load_remote(CFG, env, opener=opener_for([FakeRes(body=b'{"settings":{"notify_min_score":70}}')]))
+        self.assertEqual((src, cfg["notify_min_score"]), ("site", 70))
+
+    def test_alertes_desactivees(self):
+        mailer = FakeMailer()
+        cfg = {**CFG, "alerts_enabled": False}
+        item = RawItem("bluesky", "z", "https://exemple.invalid/z", "", "Z", NOW)
+        rep = run_once(mode="assiste", cfg=cfg, state=State(Path("/dev/null")), env={}, now=NOW, mailer=mailer,
+                       collected={"bluesky": SourceResult("bluesky", queries=["q"], items=[item])}, qualify_fn=fake_qualify({"Z": result(key="id:z")}))
+        self.assertEqual([s for s, _, _ in mailer.sent if "NOUVELLE DEMANDE" in s], [])
+        self.assertIn("alertes désactivées par l'administrateur", rep.notification_errors)
+
+    def test_nature_des_erreurs(self):
+        from lead_radar_agent.run import _error_kind
+
+        self.assertEqual(_error_kind(["auth"], "SEARCH_FAILED", 0), "authentification")
+        self.assertEqual(_error_kind(["quota"], "SEARCH_FAILED", 0), "quota_depasse")
+        self.assertEqual(_error_kind(["timeout"], "PARTIAL_SUCCESS", 2), "reseau")
+        self.assertEqual(_error_kind([], "SUCCESS_NO_RESULTS", 0), "aucun_resultat")
 
 
 class EndToEndQualifyTest(unittest.TestCase):

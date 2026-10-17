@@ -6,13 +6,13 @@ import { useRouter } from "next/navigation";
 export default function AdminLoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setError(false);
+    setError(null);
 
     const res = await fetch("/api/admin/login", {
       method: "POST",
@@ -24,7 +24,11 @@ export default function AdminLoginPage() {
       router.push("/admin");
       router.refresh();
     } else {
-      setError(true);
+      setError(
+        res.status === 429
+          ? "Trop de tentatives. Réessayez dans 15 minutes."
+          : "Mot de passe incorrect."
+      );
       setLoading(false);
     }
   }
@@ -52,7 +56,7 @@ export default function AdminLoginPage() {
         />
 
         {error ? (
-          <p className="mt-3 text-sm text-red-600">Mot de passe incorrect.</p>
+          <p className="mt-3 text-sm text-red-600">{error}</p>
         ) : null}
 
         <button
