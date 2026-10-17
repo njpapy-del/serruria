@@ -136,47 +136,47 @@ def _loc(r: dict) -> tuple[str, str]:
 
 
 NIVEAUX = {
-    "ELEVEE": "URGENCE ÉLEVÉE (d'après le texte publié)",
-    "RAPIDE": "intervention souhaitée rapidement",
-    "NON_URGENTE": "non urgente",
-    "DEVIS": "demande de devis",
+    "ELEVEE": "URGENCE ÉLEVÉE",
+    "RAPIDE": "INTERVENTION RAPIDE SOUHAITÉE",
+    "NON_URGENTE": "NON URGENTE",
+    "DEVIS": "DEMANDE DE DEVIS",
 }
 
 
 def lead_subject(r: dict) -> str:
-    besoin = (r.get("services") or ["Serrurerie"])[0]
-    besoin = "Besoin de serrurier" if besoin.startswith("Besoin de serrurier") else besoin
+    """[NOUVELLE DEMANDE SERRURERIE] — [ZONE] — [URGENCE]"""
     _, short = _loc(r)
+    zone = short or "Zone inconnue"
     niveau = r.get("niveauUrgence") or ("ELEVEE" if r.get("urgente") else "NON_URGENTE")
-    prefix = "[LEAD RADAR] URGENT — " if niveau == "ELEVEE" else "[LEAD RADAR] "
-    lieu = f" — {short}" if short else ""
-    return f"{prefix}{besoin}{lieu}"
+    return f"[NOUVELLE DEMANDE SERRURERIE] — {zone} — {NIVEAUX.get(niveau, niveau)}"
 
 
-def lead_body(r: dict, item, *, source_nom: str, detected_at: str, with_response: bool) -> str:
+def lead_body(r: dict, item, *, source_nom: str, detected_at: str, with_response: bool, delay_min: float | None = None) -> str:
     loc, _ = _loc(r)
     lignes = "\n".join(f"  - {l['critere']} : {l['points']}/{l['max']} — {l['raison']}" for l in r.get("lignes", []))
     excerpt = (f"{item.title} — {item.content}" if item.title else item.content).strip()
-    excerpt = excerpt[:600] + ("…" if len(excerpt) > 600 else "")
+    excerpt = excerpt[:400] + ("…" if len(excerpt) > 400 else "")
     niveau = r.get("niveauUrgence")
+    delai = f"{delay_min / 60:.1f} h" if delay_min is not None and delay_min >= 90 else (f"{delay_min:.0f} min" if delay_min is not None else "inconnu (date de publication absente)")
     parts = [
-        f"Type de demande : {', '.join(r.get('services') or ['non précisé'])}",
-        f"Classe : {r['classe']} — {r['categorie']} ({r['categorieRaison']})",
-        f"Niveau d'urgence : {NIVEAUX.get(niveau, 'non évalué')}" + (f" — {r['niveauUrgenceRaison']}" if r.get("niveauUrgenceRaison") else ""),
+        f"Prestation : {', '.join(r.get('services') or ['non précisée'])}",
+        f"Zone : {loc}",
+        f"Urgence : {NIVEAUX.get(niveau, 'non évaluée')}" + (f" — {r['niveauUrgenceRaison']}" if r.get("niveauUrgenceRaison") else ""),
+        f"Confiance : {r.get('confiance', 'non évaluée')}" + (f" — {r['confianceRaison']}" if r.get("confianceRaison") else ""),
+        f"Type : {r['classe']} ({r['categorieRaison']})",
         f"Score de pertinence : {r['score']}/100 (classement interne, pas une probabilité de conversion)",
         lignes,
         "",
-        f"Localisation : {loc}",
         f"Publiée le : {item.published_at.isoformat() if item.published_at else 'date inconnue'}",
-        f"Détectée le : {detected_at}",
+        f"Détectée le : {detected_at} (délai publication → détection : {delai})",
         f"Source : {source_nom}",
         f"Lien direct : {item.url or 'non disponible'}",
         "",
-        "Extrait fidèle de la publication :",
+        "Extrait (strictement nécessaire) :",
         f"« {excerpt} »",
         "",
-        "Vérification humaine nécessaire : OUI — rien n'a été publié ni envoyé à cette personne.",
-        "Disponibilité et zone à confirmer avant de proposer une intervention.",
+        f"Prochaine action recommandée : {r.get('actionRecommandee') or 'vérifier la publication avant toute réponse.'}",
+        "Statut : demande DÉTECTÉE automatiquement, non vérifiée par un humain. Rien n'a été publié ni envoyé à cette personne.",
     ]
     if with_response and r.get("reponseProposee"):
         parts += ["", "Réponse proposée (à publier vous-même si la plateforme l'autorise) :", r["reponseProposee"]]

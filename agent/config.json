@@ -85,7 +85,8 @@
           "end": "20:59"
         }
       ],
-      "scheduled_only": true
+      "scheduled_only": true,
+      "rayon_prioritaire_km": 8
     }
   },
   "metiers": {

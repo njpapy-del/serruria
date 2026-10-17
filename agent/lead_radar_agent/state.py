@@ -32,6 +32,8 @@ def _empty() -> dict[str, Any]:
         "query_cursor": {},
         "last_summary_date": None,
         "error_alerts": {},
+        "runs": [],
+        "coverage": {},
     }
 
 
@@ -127,3 +129,16 @@ class State:
     def record_error(self, source_id: str, now: datetime, code: str) -> None:
         s = self.source(source_id)
         s.update({"last_run": now.isoformat(), "last_error_code": code, "consecutive_errors": s.get("consecutive_errors", 0) + 1})
+
+    # ── Journal des passages (métriques uniquement) ──────────────────
+    def add_run(self, record: dict, keep: int = 500) -> None:
+        self.data["runs"].append(record)
+        del self.data["runs"][:-keep]
+
+    def mark_covered(self, source_id: str, lieux: list[str], now: datetime) -> None:
+        cov = self.data["coverage"].setdefault(source_id, {})
+        for lieu in lieux:
+            cov[lieu] = now.date().isoformat()
+
+    def coverage_count(self, source_id: str) -> int:
+        return len(self.data["coverage"].get(source_id, {}))

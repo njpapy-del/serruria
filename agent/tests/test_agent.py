@@ -17,7 +17,7 @@ from lead_radar_agent.http import HttpError, request, request_with_retry
 from lead_radar_agent.notify import Mailer, NotifyError, lead_subject
 from lead_radar_agent.run import load_config, run_once
 from lead_radar_agent.sources import bluesky, brave, rss
-from lead_radar_agent.sources.base import RawItem, SourceDisabled, SourceResult
+from lead_radar_agent.sources.base import RawItem, SourceDisabled, SourceNotConfigured, SourceResult
 from lead_radar_agent.state import State, digest
 
 AGENT = Path(__file__).resolve().parents[1]
@@ -239,8 +239,8 @@ class FetcherTest(unittest.TestCase):
 
 class NotifyTest(unittest.TestCase):
     def test_objet_au_format_attendu(self):
-        self.assertEqual(lead_subject({**result(), "niveauUrgence": "ELEVEE"}), "[LEAD RADAR] URGENT — Porte claquée — Aubervilliers (93)")
-        self.assertEqual(lead_subject({**result(), "niveauUrgence": "DEVIS"}), "[LEAD RADAR] Porte claquée — Aubervilliers (93)")
+        self.assertEqual(lead_subject({**result(), "niveauUrgence": "ELEVEE"}), "[NOUVELLE DEMANDE SERRURERIE] — Aubervilliers (93) — URGENCE ÉLEVÉE")
+        self.assertEqual(lead_subject({**result(), "niveauUrgence": "DEVIS", "localisation": None}), "[NOUVELLE DEMANDE SERRURERIE] — Zone inconnue — DEMANDE DE DEVIS")
 
     def test_bloque_l_ancien_numero(self):
         m = Mailer("k", "radar@x.test", ["a@x.test"])
@@ -289,14 +289,15 @@ class RunTest(unittest.TestCase):
         rep, _ = self.run_with(items, res, mailer)
         self.assertEqual(mailer.sent, [])
 
-    def test_regroupe_les_demandes_non_urgentes(self):
+    def test_un_email_par_demande_les_plus_urgentes_d_abord(self):
         mailer = FakeMailer()
         items = [self.item("A", "1"), self.item("B", "2")]
-        res = {"A": result(urgente=False, key="id:a"), "B": result(urgente=False, key="id:b")}
+        res = {"A": {**result(key="id:a"), "niveauUrgence": "DEVIS"}, "B": {**result(key="id:b"), "niveauUrgence": "ELEVEE"}}
         rep, _ = self.run_with(items, res, mailer)
-        self.assertEqual(len(mailer.sent), 1)
+        self.assertEqual(len(mailer.sent), 2)
         self.assertEqual(rep.notifications_sent, 2)
-        self.assertTrue(mailer.sent[0][0].startswith("[LEAD RADAR] 2 demande(s)"))
+        self.assertIn("URGENCE ÉLEVÉE", mailer.sent[0][0])
+        self.assertIn("DEMANDE DE DEVIS", mailer.sent[1][0])
 
     def test_surveillance_n_inclut_pas_de_reponse(self):
         mailer = FakeMailer()
@@ -308,7 +309,8 @@ class RunTest(unittest.TestCase):
         collected = {"bluesky": SourceResult("bluesky", queries=["q"], errors=["network"])}
         rep = run_once(mode="assiste", cfg=CFG, state=state, env={}, now=NOW, mailer=None, collected=collected, qualify_fn=fake_qualify({}))
         self.assertTrue(rep.search_failed)
-        self.assertEqual(rep.sources["bluesky"]["status"], "error")
+        self.assertEqual(rep.sources["bluesky"]["status"], "SEARCH_FAILED")
+        self.assertEqual(rep.status, "SEARCH_FAILED")
         self.assertEqual(state.source("bluesky")["consecutive_errors"], 1)
 
     def test_alerte_de_panne_apres_trois_echecs_une_fois_par_jour(self):
@@ -353,16 +355,20 @@ class BraveComplianceTest(unittest.TestCase):
 
         scfg = CFG["sources"]["brave_search"]
         slot = datetime(2026, 10, 16, 6, 30, tzinfo=timezone.utc)  # 8 h 30 à Paris, dans un créneau
-        manual = collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k"}, slot, {"opener": opener_for([])})
-        self.assertEqual(manual.skipped_reason, "source payante : réservée aux passages planifiés")
+        with self.assertRaises(SourceDisabled) as c:
+            collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k"}, slot, {"opener": opener_for([])})
+        self.assertIn("passages planifiés", str(c.exception))
+        with self.assertRaises(SourceNotConfigured):
+            collect("brave_search", scfg, CFG, State(Path("/dev/null")), {}, slot, {"opener": opener_for([])})
 
     def test_brave_hors_creneau_ne_fait_aucun_appel(self):
         from lead_radar_agent.run import collect
 
         scfg = CFG["sources"]["brave_search"]
         hors = datetime(2026, 10, 16, 8, 30, tzinfo=timezone.utc)  # 10 h 30 à Paris
-        res = collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k", "RADAR_ALLOW_PAID": "true"}, hors, {"opener": opener_for([])})
-        self.assertEqual(res.skipped_reason, "hors des créneaux Brave")
+        with self.assertRaises(SourceDisabled) as c:
+            collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k", "RADAR_ALLOW_PAID": "true"}, hors, {"opener": opener_for([])})
+        self.assertIn("créneaux", str(c.exception))
 
     def test_brave_dans_un_creneau_planifie(self):
         from lead_radar_agent.run import collect
@@ -373,6 +379,9 @@ class BraveComplianceTest(unittest.TestCase):
         res = collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k", "RADAR_ALLOW_PAID": "true"}, slot, {"opener": op})
         self.assertEqual(len(op.calls), scfg["max_queries_per_run"])
         self.assertIsNone(res.skipped_reason)
+        # moitié anneau prioritaire (départements d'abord), moitié anneau large (communes proches d'Aubervilliers d'abord)
+        self.assertIn("Paris", res.lieux)
+        self.assertIn("Aubervilliers", res.lieux)
 
     def test_extraits_brave_nettoyes(self):
         body = json.dumps({"web": {"results": [{"url": "https://x.test", "title": "L&#x27;astuce <strong>porte</strong>", "description": "<strong>Clé</strong> cassée"}]}}).encode()
@@ -460,21 +469,23 @@ class HealthTest(unittest.TestCase):
         return RawItem("bluesky", t, f"https://exemple.invalid/{t}", "", t, NOW)
 
     def test_etats_distincts(self):
-        self.assertEqual(self.run_health({}).health, "AUCUNE_SOURCE_CONSULTEE")
-        self.assertEqual(self.run_health({"bluesky": SourceResult("bluesky", queries=["q"])}).health, "RECHERCHE_REUSSIE_SANS_RESULTAT")
-        self.assertEqual(self.run_health({"bluesky": SourceResult("bluesky", queries=["q"], errors=["network"])}).health, "RECHERCHE_ECHOUEE")
+        self.assertEqual(self.run_health({}).status, "SOURCE_NOT_RUN")
+        self.assertEqual(self.run_health({"bluesky": SourceResult("bluesky", queries=["q"])}).status, "SUCCESS_NO_RESULTS")
+        self.assertEqual(self.run_health({"bluesky": SourceResult("bluesky", queries=["q"], errors=["network"])}).status, "SEARCH_FAILED")
         rep = self.run_health({"bluesky": SourceResult("bluesky", queries=["q"], items=[self.item("A")])}, {"A": result("NON_PERTINENT", key="id:a")})
-        self.assertEqual(rep.health, "AUCUNE_DEMANDE_PERTINENTE")
+        self.assertEqual(rep.status, "SUCCESS_NO_RELEVANT_LEADS")
+        self.assertEqual(rep.sources["bluesky"]["eliminated"], {"NON_PERTINENT": 1})
         rep = self.run_health({"bluesky": SourceResult("bluesky", queries=["q"], items=[self.item("B")])}, {"B": result(key="id:b")})
-        self.assertEqual(rep.health, "DEMANDES_TROUVEES")
-        rep = self.run_health({"bluesky": SourceResult("bluesky", queries=["q"], items=[self.item("C")], errors=["timeout"])}, {"C": result(key="id:c")})
-        self.assertEqual(rep.health, "RECHERCHE_PARTIELLE")
+        self.assertEqual(rep.status, "SUCCESS_WITH_LEADS")
+        rep = self.run_health({"bluesky": SourceResult("bluesky", queries=["q1", "q2"], items=[self.item("C")], errors=["timeout"])}, {"C": result("NON_PERTINENT", key="id:c")})
+        self.assertEqual(rep.status, "PARTIAL_SUCCESS")
 
     def test_notification_impossible_signalee(self):
         rep = run_once(mode="assiste", cfg=CFG, state=State(Path("/dev/null")), env={}, now=NOW, mailer=FakeMailer(fail=True),
                        collected={"bluesky": SourceResult("bluesky", queries=["q"], items=[self.item("A")])}, qualify_fn=fake_qualify({"A": result()}))
         self.assertTrue(rep.notification_impossible)
         self.assertEqual(rep.notif["permanent"], 1)
+        self.assertEqual(rep.status, "EMAIL_FAILED")
 
     def test_devis_et_recherche_pro_notifies_mais_regroupes(self):
         mailer = FakeMailer()
@@ -483,7 +494,7 @@ class HealthTest(unittest.TestCase):
         rep = run_once(mode="assiste", cfg=CFG, state=State(Path("/dev/null")), env={}, now=NOW, mailer=mailer,
                        collected={"bluesky": SourceResult("bluesky", queries=["q"], items=items)}, qualify_fn=fake_qualify(res))
         self.assertEqual(rep.notifications_sent, 2)
-        self.assertEqual(len([s for s, _, _ in mailer.sent if "demande(s) à examiner" in s]), 1)
+        self.assertEqual(len([s for s, _, _ in mailer.sent if s.startswith("[NOUVELLE DEMANDE SERRURERIE]")]), 2)
 
     def test_prestation_a_confirmer_jamais_notifiee(self):
         mailer = FakeMailer()
@@ -492,6 +503,47 @@ class HealthTest(unittest.TestCase):
                        collected={"bluesky": SourceResult("bluesky", queries=["q"], items=[self.item("P")])}, qualify_fn=fake_qualify({"P": r}))
         self.assertEqual(rep.notifications_sent, 0)
         self.assertEqual(rep.by_metier["plomberie"]["a_confirmer"], 1)
+
+
+class JournalTest(unittest.TestCase):
+    def test_journal_persiste_metriques_sans_contenu(self):
+        state = State(Path("/dev/null"))
+        item = RawItem("bluesky", "j1", "https://exemple.invalid/j1", "", "Je suis bloqué à Pantin", NOW - timedelta(minutes=42))
+        rep = run_once(mode="assiste", cfg=CFG, state=state, env={}, now=NOW, mailer=FakeMailer(),
+                       collected={"bluesky": SourceResult("bluesky", queries=["porte claquée"], items=[item], planned=2)},
+                       qualify_fn=fake_qualify({"Je suis bloqué à Pantin": result(key="id:j1")}))
+        rec = state.data["runs"][-1]
+        self.assertEqual(rec["run_id"], rep.run_id)
+        for k in ("started_at_utc", "started_at_paris", "finished_at_utc", "status", "sources", "alerts"):
+            self.assertIn(k, rec)
+        src = rec["sources"]["bluesky"]
+        self.assertEqual((src["planned"], src["sent"], src["succeeded"], src["failed"], src["results"], src["relevant"]), (2, 1, 1, 0, 1, 1))
+        self.assertEqual(src["delai_publication_detection_min"], {"median": 42, "max": 42})
+        dump = json.dumps(state.data)
+        self.assertNotIn("exemple.invalid", dump)
+        self.assertNotIn("Pantin", dump)
+
+    def test_non_configuree_vs_non_lancee(self):
+        cfg = json.loads(json.dumps(CFG))
+        cfg["sources"]["bluesky"]["enabled"] = False  # aucun appel réseau dans les tests
+        state = State(Path("/dev/null"))
+        rep = run_once(mode="assiste", cfg=cfg, state=state, env={}, now=NOW, mailer=None)
+        self.assertEqual(rep.sources["bluesky"]["status"], "SOURCE_NOT_RUN")
+        self.assertEqual(rep.sources["alertes_rss"]["status"], "SOURCE_NOT_CONFIGURED")
+        self.assertEqual(rep.sources["brave_search"]["status"], "SOURCE_NOT_CONFIGURED")
+
+    def test_couverture_geographique(self):
+        p, w = Q.geo_rings(["75", "77", "78", "91", "92", "93", "94", "95"])
+        self.assertEqual(len(w), 1266)
+        self.assertEqual(w[0], "Aubervilliers")
+        self.assertEqual(p[:8], ["Paris", "Seine-et-Marne", "Yvelines", "Essonne", "Hauts-de-Seine", "Seine-Saint-Denis", "Val-de-Marne", "Val-d'Oise"])
+        pairs, cur = Q.lieu_queries(w, 0, 5)
+        self.assertEqual(len({lieu for _, lieu in pairs}), 5)  # 5 communes distinctes pour 5 requêtes
+        self.assertTrue(all(q.endswith(lieu) for q, lieu in pairs))
+
+    def test_requetes_concurrence_jamais_dans_le_radar(self):
+        radar = set(Q.broad_queries()) | {q for q, _ in Q.lieu_queries(Q.geo_rings(["93"])[1], 0, 200)[0]}
+        self.assertFalse(radar & set(Q.REQUETES_CONCURRENCE))
 
 
 class EndToEndQualifyTest(unittest.TestCase):

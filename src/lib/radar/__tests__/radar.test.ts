@@ -412,3 +412,26 @@ describe("niveaux d'urgence et types de demande", () => {
     expect(detectServices(normalize(text))[0].id).toBe(id);
   });
 });
+
+describe("confiance et action recommandée", () => {
+  const bsky = getSource("bluesky")!;
+  it("confiance HAUTE : demande explicite, commune, moins de 24 h", () => {
+    const q = qualify(item("Je cherche un serrurier à Créteil", "porte claquée", 2), bsky, config, NOW);
+    expect(q.confiance).toBe("HAUTE");
+    expect(q.actionRecommandee).toMatch(/Vérifier la publication|Ouvrir la publication/);
+  });
+  it("confiance plus faible si la date est inconnue ou le lieu imprécis", () => {
+    expect(qualify(item("Je cherche un serrurier à Créteil", "porte claquée", null), bsky, config, NOW).confiance).toBe("MOYENNE");
+    expect(qualify(item("Serrurier dans le Val-de-Marne ?", "ma porte est claquée svp", null), bsky, config, NOW).confiance).toBe("FAIBLE");
+  });
+  it("aucune action commerciale pour un non-prospect", () => {
+    expect(qualify(item("Serrurier Paris 24h/24", "Nos serruriers, devis gratuit"), bsky, config, NOW).actionRecommandee).toBe("Aucune action commerciale.");
+  });
+  it("urgence élevée : action immédiate sans promesse de disponibilité", () => {
+    const q = qualify(item("Je cherche un serrurier à Créteil", "bloqué dehors, urgent"), bsky, config, NOW);
+    expect(q.actionRecommandee).toContain("Confirmer votre disponibilité");
+  });
+  it("« clé oubliée à l'intérieur » est reconnue", () => {
+    expect(detectServices(normalize("j'ai la clé oubliée à l'intérieur"))[0].id).toBe("porte_claquee");
+  });
+});

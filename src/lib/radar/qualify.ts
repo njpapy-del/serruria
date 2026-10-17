@@ -55,6 +55,9 @@ export type ClasseCommerciale =
 /** Niveau d'urgence déduit uniquement du texte publié. */
 export type NiveauUrgence = "ELEVEE" | "RAPIDE" | "NON_URGENTE" | "DEVIS";
 
+/** Confiance dans la lecture « vraie demande » (et non probabilité de conversion). */
+export type Confiance = "HAUTE" | "MOYENNE" | "FAIBLE";
+
 export type Metier = "serrurerie" | "plomberie";
 
 export type ScoreLine = { critere: string; points: number; max: number; raison: string };
@@ -76,6 +79,10 @@ export type Qualification = {
   urgente: boolean;
   niveauUrgence: NiveauUrgence;
   niveauUrgenceRaison: string;
+  confiance: Confiance;
+  confianceRaison: string;
+  /** Prochaine action recommandée au professionnel (jamais exécutée automatiquement). */
+  actionRecommandee: string;
   metier: Metier | null;
   plomberie: PlumbingMatch[];
   /** Prestation réellement assurée et activée comme source de prospects. */
@@ -449,6 +456,32 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
   }
 
   const classeBrute = classe;
+
+  // Confiance : formulation explicite + commune précise + date récente connue.
+  const isLead = ["DEMANDE_CONFIRMEE", "DEMANDE_PROBABLE", "DEMANDE_DEVIS", "RECHERCHE_PRO"].includes(classe);
+  const recent = ageHeures !== null && ageHeures <= 24;
+  let confiance: Confiance = "FAIBLE";
+  const confianceMotifs: string[] = [];
+  if (isLead) {
+    if (classe === "DEMANDE_CONFIRMEE" || classe === "DEMANDE_DEVIS") confianceMotifs.push("demande formulée explicitement");
+    if (localisation.kind === "commune") confianceMotifs.push("commune identifiée");
+    if (recent) confianceMotifs.push("publiée il y a moins de 24 h");
+    if (ageHeures === null) confianceMotifs.push("date de publication inconnue");
+    const points = (classe === "DEMANDE_CONFIRMEE" || classe === "DEMANDE_DEVIS" ? 1 : 0) + (localisation.kind === "commune" ? 1 : 0) + (recent ? 1 : 0);
+    confiance = points >= 3 ? "HAUTE" : points === 2 ? "MOYENNE" : "FAIBLE";
+  } else {
+    confianceMotifs.push("pas une demande exploitable");
+  }
+
+  const actionRecommandee = !isLead
+    ? "Aucune action commerciale."
+    : niveauUrgence === "ELEVEE"
+      ? "Ouvrir la publication immédiatement, vérifier qu'elle est toujours d'actualité, puis répondre à la main avec la réponse proposée si les règles de la plateforme le permettent. Confirmer votre disponibilité avant de promettre une intervention."
+      : classe === "DEMANDE_DEVIS"
+        ? "Répondre à la main en proposant d'établir un devis par téléphone au numéro professionnel."
+        : classe === "RECHERCHE_PRO"
+          ? "Répondre à la main en présentant l'entreprise et le numéro professionnel, si les règles de la plateforme le permettent."
+          : "Vérifier la publication (besoin réel, zone, date) avant toute réponse.";
   let categorieFinale = categorie;
   let raisonFinale = raison;
   let prestationProposee = metier === "serrurerie";
@@ -488,6 +521,9 @@ export function qualify(item: RawItem, source: SourceDescriptor, config: RadarCo
     urgente,
     niveauUrgence,
     niveauUrgenceRaison,
+    confiance,
+    confianceRaison: confianceMotifs.join(", "),
+    actionRecommandee,
     metier,
     plomberie: plumbing,
     prestationProposee,

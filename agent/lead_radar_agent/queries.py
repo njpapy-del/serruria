@@ -7,7 +7,12 @@ sans multiplier les appels à chaque passage.
 
 from __future__ import annotations
 
+import json
 from itertools import product
+from math import asin, cos, radians, sin, sqrt
+from pathlib import Path
+
+COMMUNES_PATH = Path(__file__).resolve().parents[2] / "src" / "data" / "communes-idf.json"
 
 # Formulations réellement employées par une personne qui cherche de l'aide.
 BESOINS = [
@@ -21,10 +26,27 @@ BESOINS = [
     "changer la serrure",
     "ouverture de porte",
     "serrure après cambriolage",
+    "serrure forcée",
+    "clé oubliée à l'intérieur",
+    "clés perdues",
+    "porte impossible à ouvrir",
     "devis serrurier",
 ]
 
-DEMANDES = ["cherche serrurier", "besoin serrurier", "recherche serrurier", "serrurier urgence"]
+DEMANDES = [
+    "cherche serrurier",
+    "besoin serrurier",
+    "recherche serrurier",
+    "serrurier urgence",
+    "serrurier urgent",
+    "dépannage serrurier",
+    "besoin serrurier rapidement",
+]
+
+# Analyse concurrentielle UNIQUEMENT : ces recherches renvoient des concurrents et
+# des annuaires (test réel Brave du 16/10). Elles ne sont jamais exécutées par le
+# radar de prospects et ne produisent jamais de « demande ».
+REQUETES_CONCURRENCE = ["serrurier Paris", "serrurier Aubervilliers", "serrurier Saint-Denis", "serrurier Montreuil"]
 
 # Plomberie : catalogue distinct (détection et comptage ; pas de prospects tant
 # que l'activité n'est pas activée).
@@ -108,3 +130,45 @@ def next_batch(all_queries: list[str], cursor: int, size: int) -> tuple[list[str
     start = cursor % n
     batch = [all_queries[(start + i) % n] for i in range(min(size, n))]
     return batch, (start + len(batch)) % n
+
+
+# ── Rotation géographique (moteurs de recherche) ─────────────────────────────
+# Deux anneaux : PRIORITAIRE (départements + communes proches de la base) et
+# LARGE (toutes les communes des départements couverts, de la plus proche à la
+# plus lointaine). Chaque passage prend la moitié de ses requêtes dans chaque
+# anneau ; chaque requête associe UN lieu à UNE formulation (tournante), pour
+# couvrir le maximum de communes distinctes avec un budget limité.
+
+FORMULATIONS_LIEU = [*DEMANDES_FORUM, '"besoin d\'un serrurier" urgent', '"perdu mes clés"']
+
+
+def _km(a: tuple[float, float], b: tuple[float, float]) -> float:
+    (la1, lo1), (la2, lo2) = a, b
+    h = sin(radians(la2 - la1) / 2) ** 2 + cos(radians(la1)) * cos(radians(la2)) * sin(radians(lo2 - lo1) / 2) ** 2
+    return 2 * 6371 * asin(sqrt(h))
+
+
+def geo_rings(departements: list[str], base_nom: str = "Aubervilliers", rayon_prioritaire_km: float = 8.0) -> tuple[list[str], list[str]]:
+    communes = json.loads(COMMUNES_PATH.read_text("utf-8"))
+    base = next(((c[3], c[4]) for c in communes if c[0] == base_nom), None)
+    dans_zone = [c for c in communes if c[1] in departements]
+    if base is None:
+        return [DEPARTEMENTS[d] for d in departements if d in DEPARTEMENTS], [c[0] for c in dans_zone]
+    tri = sorted(dans_zone, key=lambda c: _km(base, (c[3], c[4])))
+    proches = [c[0] for c in tri if _km(base, (c[3], c[4])) <= rayon_prioritaire_km]
+    prioritaire = [DEPARTEMENTS[d] for d in departements if d in DEPARTEMENTS] + proches
+    large = [c[0] for c in tri]
+    return prioritaire, large
+
+
+def lieu_queries(lieux: list[str], start: int, n: int) -> tuple[list[tuple[str, str]], int]:
+    """n couples (requête, lieu) à partir du curseur ; formulation tournante."""
+    if not lieux or n <= 0:
+        return [], start
+    out = []
+    for k in range(n):
+        i = start + k
+        lieu = lieux[i % len(lieux)]
+        form = FORMULATIONS_LIEU[i % len(FORMULATIONS_LIEU)]
+        out.append((f"{form} {lieu}", lieu))
+    return out, (start + n) % (len(lieux) * len(FORMULATIONS_LIEU))

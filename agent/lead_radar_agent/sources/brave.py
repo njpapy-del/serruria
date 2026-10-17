@@ -20,7 +20,7 @@ from datetime import datetime
 from urllib.parse import urlencode
 
 from ..http import HttpError, request_with_retry
-from .base import RawItem, SourceDisabled, SourceResult
+from .base import RawItem, SourceDisabled, SourceNotConfigured, SourceResult
 
 ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 _TAGS = re.compile(r"<[^>]+>")
@@ -36,11 +36,11 @@ def check_enabled(cfg: dict, api_key: str | None) -> None:
     if not cfg.get("enabled"):
         raise SourceDisabled("source désactivée dans config.json")
     if not cfg.get("approved_by_owner"):
-        raise SourceDisabled("accord du propriétaire requis (abonnement avec carte bancaire)")
+        raise SourceNotConfigured("accord du propriétaire requis (abonnement avec carte bancaire)")
     if not api_key:
-        raise SourceDisabled("clé BRAVE_SEARCH_API_KEY absente")
+        raise SourceNotConfigured("clé BRAVE_SEARCH_API_KEY absente")
     if float(cfg.get("monthly_budget_usd", 0)) <= 0:
-        raise SourceDisabled("budget mensuel à 0")
+        raise SourceNotConfigured("budget mensuel à 0")
 
 
 def search(

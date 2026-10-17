@@ -37,7 +37,16 @@ class SourceResult:
     """Codes d'erreur (jamais de contenu) : network, timeout, http, quota, parse…"""
     skipped_reason: str | None = None
     paid_requests: int = 0
+    planned: int | None = None
+    """Requêtes prévues pour ce passage (None = autant que envoyées)."""
+    lieux: list[str] = field(default_factory=list)
+    """Lieux ciblés par les requêtes de ce passage (couverture géographique)."""
+    not_configured: bool = False
 
 
 class SourceDisabled(Exception):
-    """La source ne peut pas tourner (désactivée, accord manquant, clé absente)."""
+    """La source ne tourne pas (désactivée ou hors créneau) : SOURCE_NOT_RUN."""
+
+
+class SourceNotConfigured(SourceDisabled):
+    """Configuration manquante (clé, flux, accord) : SOURCE_NOT_CONFIGURED."""
