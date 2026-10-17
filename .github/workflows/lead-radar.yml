@@ -16,6 +16,11 @@ on:
         type: choice
         options: [assiste, surveillance, test, resend-check, gsc-report]
         default: assiste
+      declencheur:
+        description: "« externe » = planificateur externe (cron-job.org) : autorise la source payante, plafonnée"
+        type: choice
+        options: [manuel, externe]
+        default: manuel
 
 permissions:
   contents: read
@@ -69,7 +74,7 @@ jobs:
           RADAR_INGEST_TOKEN: ${{ secrets.RADAR_INGEST_TOKEN }}
           HEALTHCHECK_PING_URL: ${{ secrets.HEALTHCHECK_PING_URL }}
           # Source payante (Brave) autorisée uniquement lors des passages planifiés.
-          RADAR_ALLOW_PAID: ${{ github.event_name == 'schedule' }}
+          RADAR_ALLOW_PAID: ${{ github.event_name == 'schedule' || inputs.declencheur == 'externe' }}
         run: python3 -m lead_radar_agent --mode "${{ inputs.mode || 'assiste' }}"
 
       - name: Sauvegarder l'état

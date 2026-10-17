@@ -86,7 +86,8 @@
         }
       ],
       "scheduled_only": true,
-      "rayon_prioritaire_km": 8
+      "rayon_prioritaire_km": 8,
+      "slot_first_minutes": 15
     }
   },
   "metiers": {

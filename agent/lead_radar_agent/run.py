@@ -155,6 +155,11 @@ def collect(source_id: str, scfg: dict, cfg: dict, state: State, env: dict, now:
         slots = scfg.get("run_slots") or ([scfg["run_window"]] if scfg.get("run_window") else [])
         if slots and not any(_in_window(w, local) for w in slots):
             raise SourceDisabled("hors des créneaux Brave")
+        # Borne sans état : seulement dans les N premières minutes de l'heure du créneau.
+        # Avec un déclenchement toutes les 15 min, au plus UN passage Brave par créneau.
+        first = scfg.get("slot_first_minutes")
+        if first and local.minute >= int(first):
+            raise SourceDisabled(f"créneau Brave : seulement les {first} premières minutes")
         month = now.strftime("%Y-%m")
         budget_left = float(scfg["monthly_budget_usd"]) - state.spend(month)
         left = int(scfg.get("max_queries_per_day", 0)) - state.queries_today(source_id, today)

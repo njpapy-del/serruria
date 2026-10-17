@@ -374,7 +374,7 @@ class BraveComplianceTest(unittest.TestCase):
         from lead_radar_agent.run import collect
 
         scfg = CFG["sources"]["brave_search"]
-        slot = datetime(2026, 10, 16, 6, 30, tzinfo=timezone.utc)
+        slot = datetime(2026, 10, 16, 6, 5, tzinfo=timezone.utc)  # 8 h 05 à Paris
         op = opener_for([FakeRes(body=b'{"web":{"results":[]}}')] * 10)
         res = collect("brave_search", scfg, CFG, State(Path("/dev/null")), {"BRAVE_SEARCH_API_KEY": "k", "RADAR_ALLOW_PAID": "true"}, slot, {"opener": op})
         self.assertEqual(len(op.calls), scfg["max_queries_per_run"])
