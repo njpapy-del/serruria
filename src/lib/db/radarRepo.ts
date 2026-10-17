@@ -25,7 +25,7 @@ export const CANAUX = [
   "autre",
   "inconnu",
 ] as const;
-export const OPPORTUNITY_STATUSES = ["nouvelle", "verifiee", "contactee", "gagnee", "perdue", "non_pertinente"] as const;
+export const OPPORTUNITY_STATUSES = ["nouvelle", "verifiee", "a_contacter", "contactee", "gagnee", "perdue", "non_pertinente"] as const;
 
 export class ValidationError extends Error {}
 
@@ -60,6 +60,8 @@ export type IngestOpportunity = {
   commune?: string | null;
   departement?: string | null;
   url?: string | null;
+  /** Motifs du classement (critères et mots détectés), jamais le texte publié. */
+  motifs?: string[];
 };
 
 export function validateRun(r: unknown): IngestRun {
@@ -80,6 +82,9 @@ export function validateOpportunity(x: unknown): IngestOpportunity {
   if (!str(o.key, 500) || !date(o.detected_at) || !str(o.classe, 40)) throw new ValidationError("opportunité incomplète");
   const url = str(o.url, 500);
   if (url && !/^https:\/\//.test(url)) throw new ValidationError("URL invalide");
+  if (o.motifs !== undefined && (!Array.isArray(o.motifs) || o.motifs.length > 12 || !o.motifs.every((m) => typeof m === "string" && m.length <= 200))) {
+    throw new ValidationError("motifs invalides");
+  }
   return o as unknown as IngestOpportunity;
 }
 
@@ -103,8 +108,8 @@ export async function insertRun(sql: Sql, r: IngestRun): Promise<void> {
 
 export async function upsertOpportunity(sql: Sql, o: IngestOpportunity): Promise<void> {
   await sql(
-    `INSERT INTO opportunities (source_id, key_hash, detected_at, published_at, classe, niveau_urgence, confiance, score, service, commune, departement, url)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    `INSERT INTO opportunities (source_id, key_hash, detected_at, published_at, classe, niveau_urgence, confiance, score, service, commune, departement, url, motifs)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
      ON CONFLICT (key_hash) DO NOTHING`,
     [
       o.source_id,
@@ -119,14 +124,18 @@ export async function upsertOpportunity(sql: Sql, o: IngestOpportunity): Promise
       str(o.commune, 80),
       str(o.departement, 3),
       str(o.url, 500),
+      JSON.stringify(o.motifs ?? []),
     ]
   );
 }
 
 export async function updateOpportunityStatus(sql: Sql, id: number, status: string): Promise<boolean> {
   if (!OPPORTUNITY_STATUSES.includes(status as (typeof OPPORTUNITY_STATUSES)[number])) throw new ValidationError("statut invalide");
-  const rows = await sql("UPDATE opportunities SET status = $2, updated_at = now() WHERE id = $1 RETURNING id", [id, status]);
-  return rows.length === 1;
+  const [before] = await sql("SELECT status FROM opportunities WHERE id = $1", [id]);
+  if (!before) return false;
+  await sql("UPDATE opportunities SET status = $2, updated_at = now() WHERE id = $1", [id, status]);
+  await sql("INSERT INTO opportunity_events (opportunity_id, ancien, nouveau, acteur) VALUES ($1,$2,$3,'admin')", [id, before.status, status]);
+  return true;
 }
 
 export type InterventionInput = {
@@ -177,7 +186,7 @@ export async function dashboard(sql: Sql) {
   const runs = await sql("SELECT run_id, started_at, finished_at, status, queries_sent, results, relevant, alerts_accepted, cost_usd FROM radar_runs ORDER BY started_at DESC LIMIT 30");
   const statuses = await sql(`SELECT status, count(*)::int AS n FROM radar_runs WHERE started_at >= now() - interval '7 days' GROUP BY status ORDER BY n DESC`);
   const opportunities = await sql(
-    "SELECT id, source_id, detected_at, published_at, classe, niveau_urgence, confiance, score, service, commune, departement, url, status FROM opportunities ORDER BY detected_at DESC LIMIT 100"
+    "SELECT id, source_id, detected_at, published_at, classe, niveau_urgence, confiance, score, service, commune, departement, url, status, motifs FROM opportunities ORDER BY detected_at DESC LIMIT 200"
   );
   const parCommune = await sql(
     `SELECT coalesce(commune, 'Département ' || departement, 'Inconnue') AS zone, count(*)::int AS n FROM opportunities

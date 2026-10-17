@@ -12,15 +12,38 @@ function versions(dir: string): string[] {
     .sort();
 }
 
-/** Découpe un fichier SQL en instructions (les migrations n'utilisent pas de ; dans des chaînes). */
+/**
+ * Découpe un fichier SQL en instructions : coupe sur « ; » hors des chaînes
+ * entre apostrophes (les '' doublés sont gérés) et ignore les commentaires « -- ».
+ */
 export function statements(sqlText: string): string[] {
-  return sqlText
-    .split("\n")
-    .filter((l) => !l.trim().startsWith("--"))
-    .join("\n")
-    .split(";")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const out: string[] = [];
+  let cur = "";
+  let inString = false;
+  for (let i = 0; i < sqlText.length; i++) {
+    const ch = sqlText[i];
+    if (!inString && ch === "-" && sqlText[i + 1] === "-") {
+      while (i < sqlText.length && sqlText[i] !== "\n") i++;
+      cur += "\n";
+      continue;
+    }
+    if (ch === "'") {
+      if (inString && sqlText[i + 1] === "'") {
+        cur += "''";
+        i++;
+        continue;
+      }
+      inString = !inString;
+    }
+    if (ch === ";" && !inString) {
+      if (cur.trim()) out.push(cur.trim());
+      cur = "";
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
 }
 
 async function applied(sql: Sql): Promise<Set<string>> {

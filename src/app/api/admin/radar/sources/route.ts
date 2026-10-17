@@ -1,0 +1,31 @@
+import { NextResponse } from "next/server";
+import { isAdminAuthenticated } from "@/lib/adminAuth";
+import { getSql } from "@/lib/db/sql";
+import { ValidationError } from "@/lib/db/radarRepo";
+import { listSources, setSourceEnabled, sourceEvents } from "@/lib/db/registryRepo";
+
+export async function GET() {
+  if (!(await isAdminAuthenticated())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const sql = getSql();
+  if (!sql) return NextResponse.json({ error: "db_not_configured" }, { status: 503 });
+  try {
+    return NextResponse.json({ sources: await listSources(sql), events: await sourceEvents(sql) });
+  } catch {
+    return NextResponse.json({ error: "db_error" }, { status: 502 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  if (!(await isAdminAuthenticated())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const sql = getSql();
+  if (!sql) return NextResponse.json({ error: "db_not_configured" }, { status: 503 });
+  const body = (await request.json().catch(() => ({}))) as { id?: unknown; enabled?: unknown };
+  if (typeof body.id !== "string" || typeof body.enabled !== "boolean") return NextResponse.json({ error: "invalid" }, { status: 400 });
+  try {
+    await setSourceEnabled(sql, body.id, body.enabled);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof ValidationError) return NextResponse.json({ error: "invalid", detail: error.message }, { status: 400 });
+    return NextResponse.json({ error: "db_error" }, { status: 502 });
+  }
+}

@@ -38,10 +38,11 @@ const run = (id: string, over: Record<string, unknown> = {}) => ({
 describe("migrations", () => {
   it("s'appliquent une seule fois et s'annulent proprement", async () => {
     expect(await migrateUp(sql)).toEqual([]);
+    expect(await migrateDown(sql)).toBe("002_registre_journal");
     expect(await migrateDown(sql)).toBe("001_lead_radar");
     const tables = await sql("SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1");
     expect(tables.map((t) => t.table_name)).toEqual(["schema_migrations"]);
-    expect(await migrateUp(sql)).toEqual(["001_lead_radar"]);
+    expect(await migrateUp(sql)).toEqual(["001_lead_radar", "002_registre_journal"]);
   });
 });
 
@@ -106,5 +107,25 @@ describe("interventions et tableau de bord", () => {
     expect(lr).toMatchObject({ realisees: 1, ca: 150, couts: 20, marge: 130 });
     const ads = d.saisi.parCanal30j.find((c) => c.canal === "google_ads")!;
     expect(ads).toMatchObject({ appels: 1, realisees: 0, ca: 0 });
+  });
+});
+
+describe("découpage SQL", () => {
+  it("ne coupe pas sur un « ; » dans une chaîne ni dans un commentaire", async () => {
+    const { statements } = await import("../migrate");
+    expect(statements("-- a ; b\nSELECT 'x ; y', 'l''apostrophe ; ok';\nSELECT 2;")).toEqual(["SELECT 'x ; y', 'l''apostrophe ; ok'", "SELECT 2"]);
+  });
+});
+
+describe("migration 002", () => {
+  it("crée le registre (sources interdites non activables) et s'annule vers 001", async () => {
+    const src = await sql("SELECT id, etat_base, activable, enabled FROM sources ORDER BY id");
+    expect(src.find((s) => s.id === "pagesjaunes")).toMatchObject({ etat_base: "ACCESS_NOT_PERMITTED", activable: false, enabled: false });
+    expect(src.find((s) => s.id === "brave_search")).toMatchObject({ etat_base: "ACTIVE", activable: true });
+    await expect(sql("UPDATE sources SET enabled = true WHERE id = 'pagesjaunes'")).rejects.toThrow();
+    expect(await migrateDown(sql)).toBe("002_registre_journal");
+    const tables = (await sql("SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1")).map((t) => t.table_name);
+    expect(tables).toEqual(["interventions", "opportunities", "radar_runs", "schema_migrations"]);
+    expect(await migrateUp(sql)).toEqual(["002_registre_journal"]);
   });
 });

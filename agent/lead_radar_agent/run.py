@@ -273,6 +273,7 @@ def run_once(
              "delai_publication_detection_min": None}
         if reason:
             e["reason"] = reason
+        e["error_kind"] = {"SOURCE_NOT_CONFIGURED": "non_configuree", "SOURCE_NOT_RUN": "non_lancee"}.get(status, "aucune")
         return e
 
     # 1. Collecte
@@ -391,6 +392,9 @@ def run_once(
                             "commune": loc.get("nom"),
                             "departement": loc.get("departement"),
                             "url": item.url if (item.url or "").startswith("https://") else None,
+                            # Motifs du classement (critères, mots détectés) : jamais le texte publié.
+                            "motifs": [f"{l['critere']} : {l['raison']}"[:200] for l in r.get("lignes", [])][:8]
+                            + [f"Classe : {r['categorieRaison']}"[:200]],
                         })
                     daily["demandes"] += 1
                     delay = _minutes_since(item.published_at, now)

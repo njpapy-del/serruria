@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSql } from "@/lib/db/sql";
 import { dashboard } from "@/lib/db/radarRepo";
+import { costs, overview } from "@/lib/db/registryRepo";
 
 export async function GET() {
   if (!(await isAdminAuthenticated())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const sql = getSql();
   if (!sql) return NextResponse.json({ configured: false });
   try {
-    return NextResponse.json({ configured: true, ...(await dashboard(sql)) });
+    const [d, o, c] = await Promise.all([dashboard(sql), overview(sql), costs(sql)]);
+    return NextResponse.json({ configured: true, ...d, vue: o, couts: c });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     // Tables absentes : la base existe mais n'est pas initialisée.
