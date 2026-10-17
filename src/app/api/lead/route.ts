@@ -3,6 +3,8 @@ import { Resend } from "resend";
 import { put } from "@vercel/blob";
 import { siteConfig } from "@/data/site-config";
 import { validateLead } from "@/lib/leadValidation";
+import { getSql } from "@/lib/db/sql";
+import { upsertOpportunity } from "@/lib/db/radarRepo";
 
 // Délai minimum entre l'affichage du formulaire et sa soumission : un envoi
 // plus rapide que ça vient presque toujours d'un robot, pas d'un humain.
@@ -116,6 +118,27 @@ export async function POST(request: Request) {
       emailSent = true;
     } catch (error) {
       console.error("[lead] Échec d'envoi Resend:", error);
+    }
+  }
+
+  // 3) Comptage dans le tableau de bord Lead Radar (si la base est configurée).
+  // Sans nom ni téléphone : ceux-ci restent dans le stockage des leads et l'e-mail.
+  // Un échec ici ne fait jamais échouer la demande.
+  const sql = getSql();
+  if (sql) {
+    try {
+      await upsertOpportunity(sql, {
+        source_id: "site_form",
+        key: `site:${receivedAt}:${Math.random().toString(36).slice(2, 10)}`,
+        detected_at: receivedAt,
+        published_at: receivedAt,
+        classe: "DEMANDE_SITE",
+        service: probleme,
+        commune: ville.slice(0, 80),
+        departement: ville.match(/\b(75|77|78|91|92|93|94|95)\d{3}\b/)?.[1] ?? null,
+      });
+    } catch (error) {
+      console.error("[lead] Comptage tableau de bord impossible:", error instanceof Error ? error.message : error);
     }
   }
 

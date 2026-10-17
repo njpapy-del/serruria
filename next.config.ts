@@ -3,6 +3,8 @@ import path from "node:path";
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
+  // Les fichiers SQL de migration doivent être embarqués dans la fonction d'initialisation.
+  outputFileTracingIncludes: { "/api/admin/radar/migrate": ["./db/migrations/**"] },
   // Un seul domaine indexé : www renvoie définitivement vers le domaine principal
   // (évite deux versions du site en concurrence dans Google).
   async redirects() {

@@ -62,6 +62,8 @@ class Report:
     summary_sent: bool = False
     outside_hours: bool = False
     notification_impossible: bool = False
+    # Opportunités conservables (jamais Brave) pour le tableau de bord ; hors journal public.
+    opportunities: list[dict] = field(default_factory=list)
 
     @property
     def health(self) -> str | None:  # compatibilité
@@ -346,6 +348,22 @@ def run_once(
                     m["a_confirmer"] += 1
                 if r["classe"] in LEAD_CLASSES_DEFAULT:
                     entry["relevant"] += 1
+                    if persist:
+                        loc = r.get("localisation") or {}
+                        report.opportunities.append({
+                            "source_id": sid,
+                            "key": r["dedupeKeys"][0],
+                            "detected_at": now.isoformat(),
+                            "published_at": item.published_at.isoformat() if item.published_at else None,
+                            "classe": r["classe"],
+                            "niveau_urgence": r.get("niveauUrgence"),
+                            "confiance": r.get("confiance"),
+                            "score": r.get("score"),
+                            "service": (r.get("services") or [None])[0],
+                            "commune": loc.get("nom"),
+                            "departement": loc.get("departement"),
+                            "url": item.url if (item.url or "").startswith("https://") else None,
+                        })
                     daily["demandes"] += 1
                     delay = _minutes_since(item.published_at, now)
                     if delay is not None:

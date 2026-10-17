@@ -65,6 +65,9 @@ jobs:
           BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
           GSC_PROPERTY: ${{ secrets.GSC_PROPERTY }}
+          RADAR_INGEST_URL: ${{ secrets.RADAR_INGEST_URL }}
+          RADAR_INGEST_TOKEN: ${{ secrets.RADAR_INGEST_TOKEN }}
+          HEALTHCHECK_PING_URL: ${{ secrets.HEALTHCHECK_PING_URL }}
           # Source payante (Brave) autorisée uniquement lors des passages planifiés.
           RADAR_ALLOW_PAID: ${{ github.event_name == 'schedule' }}
         run: python3 -m lead_radar_agent --mode "${{ inputs.mode || 'assiste' }}"

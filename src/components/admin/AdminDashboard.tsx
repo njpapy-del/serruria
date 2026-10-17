@@ -7,6 +7,7 @@ import { PhotosEditor } from "@/components/admin/PhotosEditor";
 import { TextEditor } from "@/components/admin/TextEditor";
 import { ContactEditor } from "@/components/admin/ContactEditor";
 import { LeadsList } from "@/components/admin/LeadsList";
+import { RadarDashboard } from "@/components/admin/RadarDashboard";
 import { siteConfig } from "@/data/site-config";
 import type content from "@/data/content.json";
 
@@ -14,6 +15,7 @@ type Content = typeof content;
 
 const TABS = [
   { id: "leads", label: "Leads" },
+  { id: "radar", label: "Lead Radar" },
   { id: "tarifs", label: "Tarifs" },
   { id: "photos", label: "Photos" },
   { id: "textes", label: "Textes" },
@@ -68,6 +70,7 @@ export function AdminDashboard({ initialContent }: { initialContent: Content }) 
 
         <div className="rounded-2xl bg-white p-6 card-elevated">
           {tab === "leads" ? <LeadsList /> : null}
+          {tab === "radar" ? <RadarDashboard /> : null}
           {tab === "tarifs" ? <TarifsEditor initial={initialContent.tarifs} /> : null}
           {tab === "photos" ? <PhotosEditor initial={initialContent.problemes} /> : null}
           {tab === "textes" ? <TextEditor initial={initialContent} /> : null}

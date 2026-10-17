@@ -587,6 +587,32 @@ class HeartbeatTest(unittest.TestCase):
         heartbeat({}, "SUCCESS_NO_RESULTS", {"opener": opener_for([])})  # sans URL : aucun appel
 
 
+class IngestTest(unittest.TestCase):
+    def test_envoi_sans_brave_ni_texte(self):
+        from lead_radar_agent.ingest import push
+
+        state = State(Path("/dev/null"))
+        items = [RawItem("bluesky", "b1", "https://bsky.app/profile/x.test/post/1", "", "B", NOW), RawItem("brave_search", None, "https://exemple.invalid/r", "t", "R", NOW)]
+        collected = {"bluesky": SourceResult("bluesky", queries=["q"], items=items[:1]), "brave_search": SourceResult("brave_search", queries=["q"], items=items[1:])}
+        rep = run_once(mode="assiste", cfg=CFG, state=state, env={}, now=NOW, mailer=FakeMailer(), collected=collected,
+                       qualify_fn=fake_qualify({"B": result(key="id:b1"), "R": result(key="url:r")}))
+        self.assertEqual([o["source_id"] for o in rep.opportunities], ["bluesky"])
+        op = opener_for([FakeRes(body=b'{"ok":true}')])
+        self.assertEqual(push({"RADAR_INGEST_URL": "https://site.test/api/radar/ingest", "RADAR_INGEST_TOKEN": "t" * 40}, rep, opener=op), "ok")
+        sent = json.loads(op.calls[0].data)
+        self.assertEqual([o["source_id"] for o in sent["opportunities"]], ["bluesky"])
+        self.assertNotIn("queries", json.dumps(sent["run"]["sources"]))
+        self.assertNotIn("exemple.invalid", json.dumps(sent))
+        self.assertEqual(op.calls[0].get_header("Authorization"), "Bearer " + "t" * 40)
+
+    def test_non_configure_et_erreur(self):
+        from lead_radar_agent.ingest import push
+
+        rep = run_once(mode="assiste", cfg=CFG, state=State(Path("/dev/null")), env={}, now=NOW, mailer=None, collected={}, qualify_fn=fake_qualify({}))
+        self.assertEqual(push({}, rep), "not_configured")
+        self.assertTrue(push({"RADAR_INGEST_URL": "https://site.test/i", "RADAR_INGEST_TOKEN": "t"}, rep, opener=opener_for([http_error(503)] * 3), sleep=lambda s: None).startswith("error"))
+
+
 class EndToEndQualifyTest(unittest.TestCase):
     """Utilise le vrai moteur TypeScript (nécessite node_modules)."""
 

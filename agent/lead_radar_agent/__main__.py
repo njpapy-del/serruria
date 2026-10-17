@@ -118,6 +118,11 @@ def main(argv: list[str] | None = None) -> int:
         state = State.load(args.state)
         report = run_once(mode=args.mode, cfg=cfg, state=state, env=env, now=now, mailer=mailer)
         state.save()
+        from .ingest import push
+
+        ingest_status = push(env, report)
+        if ingest_status.startswith("error"):
+            print(f"Tableau de bord : envoi impossible ({ingest_status})", file=sys.stderr)
         heartbeat(env, report.status)
 
     print(report.public_log())
