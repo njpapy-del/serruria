@@ -12,6 +12,11 @@ export const metadata: Metadata = {
     description: `Porte claquée, porte bloquée ou serrure endommagée à Paris et en Île-de-France ? Appelez ${siteConfig.brand.name} au ${siteConfig.contact.phoneDisplay} ou demandez une intervention en ligne.`,
   }),
   metadataBase: new URL(siteConfig.siteUrl),
+  // Validation Search Console (méthode « balise HTML ») : le code est fourni par
+  // Google et se règle dans Vercel, sans modifier le code. Vide = aucune balise.
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } }
+    : {}),
 };
 
 // viewport-fit=cover : nécessaire pour que env(safe-area-inset-bottom) soit

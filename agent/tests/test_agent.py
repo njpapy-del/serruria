@@ -546,6 +546,35 @@ class JournalTest(unittest.TestCase):
         self.assertFalse(radar & set(Q.REQUETES_CONCURRENCE))
 
 
+class GscTest(unittest.TestCase):
+    def test_non_configure(self):
+        from lead_radar_agent.gsc import GscNotConfigured, fetch_report
+
+        with self.assertRaises(GscNotConfigured):
+            fetch_report({})
+
+    def test_erreur_remontee(self):
+        from types import SimpleNamespace
+
+        from lead_radar_agent.gsc import GscError, fetch_report
+
+        fake = lambda *a, **k: SimpleNamespace(returncode=1, stdout="", stderr='{"error":"permission","message":"accès refusé"}')
+        with self.assertRaises(GscError) as c:
+            fetch_report({"GSC_SERVICE_ACCOUNT_JSON": "x", "GSC_PROPERTY": "sc-domain:x"}, runner=fake)
+        self.assertIn("permission", str(c.exception))
+
+    def test_email_du_rapport(self):
+        from lead_radar_agent.gsc import report_email
+
+        r = {"property": "sc-domain:serrurerielouisfils.com", "periode": {"debut": "2026-09-17", "fin": "2026-10-14", "note": "n"},
+             "totaux": {"clics": 3, "impressions": 200, "ctr": 0.015, "positionMoyenne": 12.3},
+             "requetes": [{"requete": "serrurier aubervilliers", "clics": 1, "impressions": 80, "ctr": 0.01, "position": 14.0}],
+             "pages": [], "opportunites": [{"requete": "serrurier aubervilliers", "impressions": 80, "position": 14.0, "raison": "affiché au-delà de la 1re page"}]}
+        subject, body = report_email(r)
+        self.assertTrue(subject.startswith("[SEARCH CONSOLE]"))
+        self.assertIn("Ce ne sont ni des appels ni des clients", body)
+
+
 class EndToEndQualifyTest(unittest.TestCase):
     """Utilise le vrai moteur TypeScript (nécessite node_modules)."""
 

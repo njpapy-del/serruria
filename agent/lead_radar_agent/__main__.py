@@ -59,7 +59,7 @@ def resend_check(mailer: Mailer | None, now: datetime) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="lead_radar_agent")
-    p.add_argument("--mode", choices=["test", "surveillance", "assiste", "resend-check"], default="assiste")
+    p.add_argument("--mode", choices=["test", "surveillance", "assiste", "resend-check", "gsc-report"], default="assiste")
     p.add_argument("--config", type=Path, default=AGENT_DIR / "config.json")
     p.add_argument("--state", type=Path, default=AGENT_DIR / ".state" / "state.json")
     p.add_argument("--no-email", action="store_true", help="n'envoie aucun e-mail")
@@ -73,6 +73,24 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.mode == "resend-check":
         return resend_check(mailer, now)
+
+    if args.mode == "gsc-report":
+        from .gsc import GscError, GscNotConfigured, fetch_report, report_email
+
+        try:
+            report = fetch_report(env)
+        except GscNotConfigured as exc:
+            print(json.dumps({"gsc_report": "SOURCE_NOT_CONFIGURED", "detail": str(exc)}, ensure_ascii=False))
+            return 2
+        except GscError as exc:
+            print(json.dumps({"gsc_report": "SEARCH_FAILED", "detail": str(exc)}, ensure_ascii=False))
+            return 1
+        subject, body = report_email(report)
+        sent = None
+        if mailer:
+            sent = mailer.send(subject, body, f"gsc-{report['periode']['fin']}")
+        print(json.dumps({"gsc_report": "SUCCESS", "periode": report["periode"], "totaux": report["totaux"], "requetes": len(report["requetes"]), "email_id": sent}, ensure_ascii=False))
+        return 0
 
     if args.mode == "test":
         state = State(AGENT_DIR / ".state" / "test-state.json")  # état jetable
