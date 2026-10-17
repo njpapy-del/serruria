@@ -1,0 +1,12 @@
+[Unit]
+Description=Lead Radar — passage toutes les 10 minutes, 24 h/24
+
+[Timer]
+OnBootSec=2min
+# 10 min après la FIN du passage précédent : pas de chevauchement.
+OnUnitInactiveSec=10min
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

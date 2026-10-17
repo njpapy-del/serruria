@@ -17,6 +17,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .http import HttpError, request
 from .notify import Mailer, NotifyError
 from .run import load_config, run_once
 from .sources.base import RawItem, SourceResult
@@ -55,6 +56,19 @@ def resend_check(mailer: Mailer | None, now: datetime) -> int:
         out.update(accepted=False, error_kind=exc.kind, error_code=exc.code, error=str(exc))
     print(json.dumps(out, ensure_ascii=False))
     return 0 if out.get("accepted") and "delivered" in out.get("delivery", {}) else 1
+
+
+def heartbeat(env: dict, status: str | None, http_kwargs: dict | None = None) -> None:
+    """Signal de vie (Healthchecks.io ou compatible) : succès, ou /fail si la recherche
+    ou l'envoi a échoué, ou si aucune recherche n'a été faite. Sans URL : rien."""
+    url = env.get("HEALTHCHECK_PING_URL")
+    if not url:
+        return
+    ok = status in ("SUCCESS_WITH_LEADS", "SUCCESS_NO_RELEVANT_LEADS", "SUCCESS_NO_RESULTS")
+    try:
+        request(url.rstrip("/") + ("" if ok else "/fail"), method="POST", data=(status or "").encode(), timeout=10, **(http_kwargs or {}))
+    except HttpError:
+        pass  # le service de surveillance détectera l'absence de signal
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -104,6 +118,7 @@ def main(argv: list[str] | None = None) -> int:
         state = State.load(args.state)
         report = run_once(mode=args.mode, cfg=cfg, state=state, env=env, now=now, mailer=mailer)
         state.save()
+        heartbeat(env, report.status)
 
     print(report.public_log())
     if report.search_failed or report.notification_errors:

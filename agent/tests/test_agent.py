@@ -575,6 +575,18 @@ class GscTest(unittest.TestCase):
         self.assertIn("Ce ne sont ni des appels ni des clients", body)
 
 
+class HeartbeatTest(unittest.TestCase):
+    def test_succes_et_echec(self):
+        from lead_radar_agent.__main__ import heartbeat
+
+        op = opener_for([FakeRes(), FakeRes(), FakeRes()])
+        heartbeat({"HEALTHCHECK_PING_URL": "https://hc.test/abc"}, "SUCCESS_NO_RESULTS", {"opener": op})
+        heartbeat({"HEALTHCHECK_PING_URL": "https://hc.test/abc"}, "SEARCH_FAILED", {"opener": op})
+        heartbeat({"HEALTHCHECK_PING_URL": "https://hc.test/abc"}, "SOURCE_NOT_RUN", {"opener": op})
+        self.assertEqual([c.full_url for c in op.calls], ["https://hc.test/abc", "https://hc.test/abc/fail", "https://hc.test/abc/fail"])
+        heartbeat({}, "SUCCESS_NO_RESULTS", {"opener": opener_for([])})  # sans URL : aucun appel
+
+
 class EndToEndQualifyTest(unittest.TestCase):
     """Utilise le vrai moteur TypeScript (nécessite node_modules)."""
 

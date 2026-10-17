@@ -26,6 +26,10 @@ concurrency:
 
 jobs:
   radar:
+    # Une fois le serveur dédié actif, couper la planification GitHub (sinon deux
+    # robots avec deux états = alertes en double) : variable de dépôt
+    # RADAR_GITHUB_SCHEDULE=off. Les lancements manuels restent possibles.
+    if: github.event_name != 'schedule' || vars.RADAR_GITHUB_SCHEDULE != 'off'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

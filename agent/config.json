@@ -45,8 +45,8 @@
     "bluesky": {
       "enabled": true,
       "max_queries_per_run": 10,
-      "max_queries_per_day": 300,
-      "min_interval_minutes": 45,
+      "max_queries_per_day": 1500,
+      "min_interval_minutes": 10,
       "lookback_hours": 6
     },
     "alertes_rss": {

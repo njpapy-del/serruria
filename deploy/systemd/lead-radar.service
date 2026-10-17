@@ -1,0 +1,23 @@
+[Unit]
+Description=Lead Radar — un passage de recherche (Serrurerie Louis & Fils)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=leadradar
+Group=leadradar
+WorkingDirectory=/opt/lead-radar/agent
+EnvironmentFile=/etc/lead-radar.env
+# flock : jamais deux passages simultanés (quotas, doublons d'alertes).
+ExecStart=/usr/bin/flock -n /run/lead-radar/run.lock /usr/bin/python3 -m lead_radar_agent --mode assiste --state /var/lib/lead-radar/state.json
+RuntimeDirectory=lead-radar
+RuntimeDirectoryPreserve=yes
+StateDirectory=lead-radar
+# Passage bloqué : arrêté après 15 min (le signal de vie manquant déclenche l'alerte).
+TimeoutStartSec=15min
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/lead-radar /run/lead-radar
+PrivateTmp=yes
